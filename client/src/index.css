@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --font-sans: "Inter", "sans-serif";
+}
+
+@layer base {
+  body {
+    @apply antialiased text-gray-900 bg-gray-50;
+  }
+}
+
+/* Print specific styles for the Resume Builder preview scaling */
+@media print {
+  @page { margin: 0; }
+  body { margin: 1cm; }
+  .no-print {
+    display: none !important;
+  }
+}
+
+.resume-preview-wrapper {
+  transform-origin: top center;
+  transition: transform 0.2s ease-in-out;
+}
+
+/* Custom scrollbar for left panel */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 20px;
+}
