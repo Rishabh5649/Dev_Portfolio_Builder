@@ -1,2 +1,23 @@
-node_modules
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Dependencies
+node_modules/
+
+# Server
+server/uploads/
+
+# Client
+client/dist/
+client/dist-ssr/
+*.local
+
+# Environment
 .env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
