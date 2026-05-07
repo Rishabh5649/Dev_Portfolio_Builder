@@ -1,144 +1,346 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { fetchPortfolio } from '../store/portfolioSlice';
 import { fetchResume } from '../store/resumeSlice';
-import { Monitor, FileText, Globe, LogOut, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { useTilt } from '../hooks/useTilt';
+import {
+  LayoutDashboard, Palette, FileText, Globe,
+  Copy, ExternalLink, CheckCircle2, Clock,
+  ArrowRight, User, Zap,
+} from 'lucide-react';
+import Navbar from '../components/layout/Navbar';
 
-const Dashboard = () => {
-  const { user, logout } = useAuth();
+const GitHubIcon = ({ size = 16 }) => (
+  <svg width={size} height={size} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/>
+  </svg>
+);
+
+const stagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08 } },
+};
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+};
+
+function StatCard({ icon, label, value, accent, to }) {
+  const tiltRef = useTilt(8);
+  const content = (
+    <div ref={tiltRef} className="stat-card card-tilt" style={{ cursor: to ? 'pointer' : 'default' }}>
+      <div style={{
+        width: 40, height: 40,
+        borderRadius: 10,
+        background: `${accent}20`,
+        border: `1px solid ${accent}40`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: accent, marginBottom: 16,
+      }}>
+        {icon}
+      </div>
+      <div style={{ fontSize: 28, fontWeight: 900, color: accent, marginBottom: 4 }}>{value}</div>
+      <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{label}</div>
+    </div>
+  );
+  return to ? <Link to={to} style={{ textDecoration: 'none' }}>{content}</Link> : content;
+}
+
+function ActionCard({ icon, title, desc, to, accent, cta }) {
+  const tiltRef = useTilt(5);
+  return (
+    <motion.div variants={fadeUp}>
+      <Link to={to} style={{ textDecoration: 'none' }}>
+        <div ref={tiltRef} className="card card-tilt" style={{ cursor: 'pointer', height: '100%' }}>
+          <div style={{
+            width: 48, height: 48,
+            borderRadius: 12,
+            background: `${accent}20`,
+            border: `1px solid ${accent}40`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: accent, marginBottom: 16,
+          }}>
+            {icon}
+          </div>
+          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>{title}</h3>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.7 }}>{desc}</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: accent, fontSize: 13, fontWeight: 600 }}>
+            {cta} <ArrowRight size={14} />
+          </div>
+        </div>
+      </Link>
+    </motion.div>
+  );
+}
+
+export default function Dashboard() {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const dispatch = useDispatch();
-  const { data: portfolio, loading: portfolioLoading } = useSelector(state => state.portfolio);
-  const { data: resume, loading: resumeLoading } = useSelector(state => state.resume);
+  const { data: portfolio, loading: pLoading } = useSelector(s => s.portfolio);
+  const { data: resume, loading: rLoading } = useSelector(s => s.resume);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     dispatch(fetchPortfolio());
     dispatch(fetchResume());
   }, [dispatch]);
 
-  const loading = portfolioLoading || resumeLoading;
+  const loading = pLoading || rLoading;
+
+  const publicUrl = portfolio?.slug
+    ? `${window.location.origin}/p/${portfolio.slug}`
+    : null;
+
+  const copyUrl = async () => {
+    if (!publicUrl) return;
+    await navigator.clipboard.writeText(publicUrl);
+    setCopied(true);
+    toast('success', 'Link copied to clipboard!');
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+
+  // Completion stats
+  const pFields = portfolio ? [
+    portfolio.personalInfo?.fullName,
+    portfolio.personalInfo?.title,
+    portfolio.personalInfo?.bio,
+    portfolio.skills?.length,
+    portfolio.projects?.length,
+    portfolio.contactInfo?.email,
+  ].filter(Boolean).length : 0;
+  const pCompletion = Math.round((pFields / 6) * 100);
+
+  const rFields = resume ? [
+    resume.header?.name,
+    resume.summary,
+    resume.experience?.length,
+    resume.education?.length,
+    resume.skillGroups?.length,
+  ].filter(Boolean).length : 0;
+  const rCompletion = Math.round((rFields / 5) * 100);
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg-base)' }}>
+        <Navbar />
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '48px 24px' }}>
+          {/* Skeleton */}
+          <div style={{ marginBottom: 32 }}>
+            <div className="skeleton" style={{ width: 280, height: 32, marginBottom: 12 }} />
+            <div className="skeleton" style={{ width: 200, height: 18 }} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 20, marginBottom: 32 }}>
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="skeleton" style={{ height: 120, borderRadius: 16 }} />
+            ))}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="skeleton" style={{ height: 180, borderRadius: 16 }} />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Top Navigation */}
-      <nav className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Monitor className="h-8 w-8 text-indigo-600 mr-2" />
-              <span className="font-bold text-xl text-gray-900">DevPortfolio</span>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm font-medium text-gray-700">Hey, {user?.name}</span>
-              <button
-                onClick={logout}
-                className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <LogOut className="h-4 w-4 mr-1" />
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-base)', position: 'relative' }}>
+      <div className="orb orb-purple" style={{ opacity: 0.15 }} />
+      <div className="orb orb-cyan" style={{ opacity: 0.12 }} />
+      <Navbar />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="mt-1 text-sm text-gray-500">Manage your online presence and resume documents.</p>
-        </div>
-
-        {loading ? (
-          <div className="animate-pulse space-y-4">
-            <div className="h-40 bg-gray-200 rounded-xl"></div>
-            <div className="h-40 bg-gray-200 rounded-xl"></div>
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '48px 24px', position: 'relative', zIndex: 1 }}>
+        {/* Greeting */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{ marginBottom: 40 }}
+        >
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Clock size={13} />
+            {greeting}
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Portfolio Card */}
-            <div className="bg-white overflow-hidden shadow rounded-xl border border-gray-100 flex flex-col">
-              <div className="p-6 flex-grow">
-                <div className="flex items-center mb-4">
-                  <div className="p-3 bg-indigo-50 text-indigo-700 rounded-lg">
-                    <Globe className="h-6 w-6" />
-                  </div>
-                  <h2 className="ml-3 text-xl font-semibold text-gray-900">Web Portfolio</h2>
-                </div>
-                <p className="text-gray-600 text-sm mb-4">
-                  Build and publish your public developer portfolio. Add your projects, skills, education, and social links.
-                </p>
-                <div className="space-y-3">
-                  {portfolio ? (
-                    <>
-                      <div className="flex items-center text-sm text-green-700 bg-green-50 p-2 rounded">
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
-                        Portfolio created
-                      </div>
-                      {portfolio.isPublished && portfolio.slug && (
-                        <div className="text-sm">
-                          <span className="text-gray-500">Public Link: </span>
-                          <Link to={`/p/${portfolio.slug}`} target="_blank" className="text-indigo-600 font-medium hover:underline">
-                            /p/{portfolio.slug}
-                          </Link>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="text-sm text-gray-500 italic">Not created yet</div>
-                  )}
-                </div>
-              </div>
-              <div className="bg-gray-50 px-6 py-4 border-t border-gray-100">
-                <Link
-                  to="/portfolio-builder"
-                  className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-                >
-                  {portfolio ? 'Edit Portfolio' : 'Create Portfolio'}
-                  <ArrowRight className="ml-2 -mr-1 h-4 w-4" />
-                </Link>
-              </div>
-            </div>
+          <h1 style={{ fontSize: 32, fontWeight: 900, marginBottom: 8 }}>
+            Welcome back, <span className="gradient-text">{user?.name?.split(' ')[0] || 'Developer'}</span> 👋
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 15 }}>
+            Here's your developer hub at a glance.
+          </p>
+        </motion.div>
 
-            {/* Resume Builder Card */}
-            <div className="bg-white overflow-hidden shadow rounded-xl border border-gray-100 flex flex-col relative">
-              <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg transform rotate-12 z-10">
-                NEW!
-              </div>
-              <div className="p-6 flex-grow">
-                <div className="flex items-center mb-4">
-                  <div className="p-3 bg-purple-50 text-purple-700 rounded-lg">
-                    <FileText className="h-6 w-6" />
-                  </div>
-                  <h2 className="ml-3 text-xl font-semibold text-gray-900">Resume Builder</h2>
-                </div>
-                <p className="text-gray-600 text-sm mb-4">
-                  Auto-fill from your portfolio data and generate ATS-friendly, single-page print-ready resumes. Export as PDF or DOCX.
-                </p>
-                <div className="space-y-3">
-                  {resume ? (
-                    <div className="flex items-center text-sm text-green-700 bg-green-50 p-2 rounded">
-                      <CheckCircle2 className="h-4 w-4 mr-2" />
-                      Resume active (using {resume.template} template)
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-              <div className="bg-gray-50 px-6 py-4 border-t border-gray-100">
-                <Link
-                  to="/resume-builder"
-                  className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
-                >
-                  Open Resume Builder
-                  <ArrowRight className="ml-2 -mr-1 h-4 w-4" />
-                </Link>
-              </div>
+        {/* GitHub connect banner */}
+        {user && !user.githubUsername && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{
+              background: 'rgba(0,229,160,0.08)',
+              border: '1px solid rgba(0,229,160,0.3)',
+              borderRadius: 12,
+              padding: '14px 20px',
+              marginBottom: 32,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 16,
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--success)' }}>
+              <GitHubIcon size={16} />
+              <span style={{ fontWeight: 600, fontSize: 14 }}>Connect GitHub to import repos & show contribution stats</span>
             </div>
-          </div>
+            <Link to="/portfolio-builder" className="btn btn-success btn-sm">
+              Connect GitHub <ArrowRight size={13} />
+            </Link>
+          </motion.div>
         )}
-      </main>
+        {user?.githubUsername && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{
+              background: 'var(--success-dim)',
+              border: '1px solid rgba(0,229,160,0.3)',
+              borderRadius: 12,
+              padding: '12px 20px',
+              marginBottom: 32,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              color: 'var(--success)',
+              fontSize: 14,
+              fontWeight: 500,
+            }}
+          >
+            <CheckCircle2 size={16} />
+            <GitHubIcon size={14} />
+            GitHub connected: <strong>@{user.githubUsername}</strong>
+          </motion.div>
+        )}
+
+        {/* Stat Cards */}
+        <motion.div
+          variants={stagger}
+          initial="hidden"
+          animate="show"
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 20, marginBottom: 40 }}
+        >
+          <motion.div variants={fadeUp}>
+            <StatCard
+              icon={<Palette size={18} />}
+              label="Portfolio Completion"
+              value={`${pCompletion}%`}
+              accent="#6C63FF"
+              to="/portfolio-builder"
+            />
+          </motion.div>
+          <motion.div variants={fadeUp}>
+            <StatCard
+              icon={<FileText size={18} />}
+              label="Resume Completion"
+              value={`${rCompletion}%`}
+              accent="#00D4FF"
+              to="/resume-builder"
+            />
+          </motion.div>
+          <motion.div variants={fadeUp}>
+            <StatCard
+              icon={<Globe size={18} />}
+              label="Portfolio Status"
+              value={portfolio?.published ? 'Live' : 'Draft'}
+              accent={portfolio?.published ? '#00E5A0' : '#FFB830'}
+            />
+          </motion.div>
+          <motion.div variants={fadeUp}>
+            <StatCard
+              icon={<User size={18} />}
+              label="GitHub Repos"
+              value={user?.githubUsername ? '∞' : '—'}
+              accent="#00E5A0"
+            />
+          </motion.div>
+        </motion.div>
+
+        {/* Public Portfolio Link */}
+        {publicUrl && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 12,
+              padding: '16px 20px',
+              marginBottom: 32,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 16,
+              flexWrap: 'wrap',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                Your public portfolio
+              </div>
+              <div style={{ fontSize: 14, color: 'var(--accent)', fontWeight: 500 }}>{publicUrl}</div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button id="copy-portfolio-url" className="btn btn-secondary btn-sm" onClick={copyUrl}>
+                {copied ? <CheckCircle2 size={14} /> : <Copy size={14} />}
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
+              <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm">
+                <ExternalLink size={14} />
+                Open
+              </a>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Action Cards */}
+        <motion.div
+          variants={stagger}
+          initial="hidden"
+          animate="show"
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 24 }}
+        >
+          <ActionCard
+            icon={<Palette size={22} />}
+            title="Portfolio Builder"
+            desc="Fill in your info, pick a theme, and generate a stunning public portfolio site. All 12 sections, 3 export-ready themes."
+            to="/portfolio-builder"
+            accent="#6C63FF"
+            cta="Open builder"
+          />
+          <ActionCard
+            icon={<FileText size={22} />}
+            title="Resume Builder"
+            desc="5 ATS-ready templates. Auto-fill from portfolio, drag sections, export PDF or DOCX in one click."
+            to="/resume-builder"
+            accent="#00D4FF"
+            cta="Build resume"
+          />
+          <ActionCard
+            icon={<Zap size={22} />}
+            title="Quick Tips"
+            desc="Fill in the Portfolio Builder first — the Resume Builder can auto-import all your data with one click."
+            to="/portfolio-builder"
+            accent="#FFB830"
+            cta="Start here"
+          />
+        </motion.div>
+      </div>
     </div>
   );
-};
-
-export default Dashboard;
+}

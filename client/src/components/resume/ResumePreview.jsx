@@ -54,13 +54,20 @@ const ResumePreview = () => {
   };
 
   return (
-    <div className="flex flex-col items-center w-full max-w-4xl mx-auto h-full">
-      <div className="w-full max-w-2xl px-4 lg:px-0">
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      width: '100%', maxWidth: '1000px', margin: '0 auto', height: '100%'
+    }}>
+      <div style={{ width: '100%', maxWidth: '800px', padding: '0 16px' }}>
          <OverflowWarning isOverflowing={isOverflowing} />
       </div>
       
       {/* Scroll container wrapper holding scaled A4 page */}
-      <div className="flex-1 w-full flex justify-center items-start pt-4 overflow-y-auto overflow-x-hidden pb-12">
+      <div style={{
+        flex: 1, width: '100%', display: 'flex', justifyContent: 'center',
+        alignItems: 'flex-start', paddingTop: '16px', overflowY: 'auto',
+        overflowX: 'hidden', paddingBottom: '48px'
+      }}>
         
         {/* The scaled wrapper - visually shrinks A4 to fit most screens */}
         <div className="resume-preview-wrapper" style={{ transform: 'scale(0.85)' }}>
@@ -68,26 +75,37 @@ const ResumePreview = () => {
           {/* Physical A4 Container representation */}
           <div 
             ref={printRef}
-            className={`bg-white shadow-2xl relative transition-colors ${isOverflowing ? 'ring-2 ring-red-500' : 'ring-1 ring-gray-200'}`}
-            style={{ 
+            style={{
+              background: '#fff', boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+              borderRadius: '2px',
               width: '794px', 
-              minHeight: '1123px', // A4 aspect ratio at 96 DPI
-              // Don't set max-height, let it grow so we can measure overflow
+              minHeight: '1123px',
               padding: 0,
+              position: 'relative',
+              transition: 'box-shadow 0.2s',
+              border: isOverflowing ? '2px solid var(--danger)' : '1px solid var(--border)'
             }}
           >
             {/* The actual resume DOM content */}
-            <div className="w-full h-full text-black">
+            <div style={{ width: '100%', height: '100%', color: '#000' }}>
               {renderTemplate()}
             </div>
 
             {/* 1-page boundary visual indicator */}
             {isOverflowing && (
                 <div 
-                  className="absolute left-0 w-full border-t border-dashed border-red-500 flex justify-center items-center z-50 pointer-events-none"
-                  style={{ top: '1123px' }}
+                  style={{
+                    position: 'absolute', left: 0, width: '100%',
+                    borderTop: '2px dashed var(--danger)', display: 'flex',
+                    justifyContent: 'center', alignItems: 'center', zIndex: 50,
+                    pointerEvents: 'none', top: '1123px'
+                  }}
                 >
-                  <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full mt-[-10px]">1-Page Boundary</span>
+                  <span style={{
+                    background: 'var(--danger)', color: '#fff',
+                    fontSize: '11px', padding: '4px 12px', borderRadius: '12px',
+                    marginTop: '-10px', fontWeight: 600
+                  }}>1-Page Boundary</span>
                 </div>
             )}
             

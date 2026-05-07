@@ -17,24 +17,44 @@ const SortableItem = ({ id, label, isHidden, onToggleHide }) => {
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center justify-between p-3 mb-2 bg-white border rounded-md shadow-sm 
-        ${isDragging ? 'ring-2 ring-indigo-500 border-transparent shadow-lg' : 'border-gray-200'}
-        ${isHidden ? 'opacity-60 bg-gray-50' : ''}
-      `}
     >
-      <div className="flex items-center">
-        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing mr-3 text-gray-400 hover:text-gray-600">
-          <GripVertical className="h-5 w-5" />
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '12px', marginBottom: '8px', background: isDragging ? 'var(--accent-dim)' : 'var(--bg-surface)',
+        border: '1px solid ' + (isDragging ? 'var(--accent)' : 'var(--border)'),
+        borderRadius: 'var(--radius-sm)', boxShadow: isDragging ? '0 4px 12px rgba(0,0,0,0.2)' : 'none',
+        opacity: isHidden ? 0.6 : 1
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <div {...attributes} {...listeners} style={{
+            cursor: 'grab', marginRight: '12px', color: 'var(--text-muted)',
+            padding: '4px', transition: 'all 0.2s'
+          }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+          >
+            <GripVertical size={18} />
+          </div>
+          <span style={{
+            fontWeight: 500,
+            color: isHidden ? 'var(--text-muted)' : 'var(--text-primary)',
+            textDecoration: isHidden ? 'line-through' : 'none'
+          }}>{label}</span>
         </div>
-        <span className={`font-medium ${isHidden ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{label}</span>
+        <button
+          onClick={() => onToggleHide(id)}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--text-muted)', padding: '4px',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+          title={isHidden ? "Show section" : "Hide section"}
+        >
+          {isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
       </div>
-      <button
-        onClick={() => onToggleHide(id)}
-        className="text-gray-400 hover:text-indigo-600 transition-colors p-1"
-        title={isHidden ? "Show section" : "Hide section"}
-      >
-        {isHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-      </button>
     </div>
   );
 };
@@ -66,8 +86,14 @@ const SectionReorder = ({ sections, sectionLabels, hiddenSections, onChangeOrder
   };
 
   return (
-    <div className="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
-      <h3 className="text-sm font-medium text-gray-700 mb-3">Section Order (Drag to reorder)</h3>
+    <div style={{
+      marginBottom: '24px', background: 'var(--bg-surface)', padding: '16px',
+      borderRadius: 'var(--radius-md)', border: '1px solid var(--border)'
+    }}>
+      <h3 style={{
+        fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)',
+        marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px 0'
+      }}>Section Order (Drag to reorder)</h3>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={sections} strategy={verticalListSortingStrategy}>
           {sections.map((sectionId) => (
@@ -81,8 +107,11 @@ const SectionReorder = ({ sections, sectionLabels, hiddenSections, onChangeOrder
           ))}
         </SortableContext>
       </DndContext>
-      <p className="text-xs text-gray-500 mt-3 flex items-center">
-        <EyeOff className="w-3 h-3 mr-1 inline" /> Hidden sections will not appear in the exported PDF/DOCX.
+      <p style={{
+        fontSize: '11px', color: 'var(--text-muted)', marginTop: '12px',
+        display: 'flex', alignItems: 'center', gap: '6px', margin: '12px 0 0 0'
+      }}>
+        <EyeOff size={14} /> Hidden sections will not appear in the exported PDF/DOCX.
       </p>
     </div>
   );

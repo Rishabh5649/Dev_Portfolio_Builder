@@ -8,6 +8,7 @@ import PortfolioBuilder from './pages/PortfolioBuilder';
 import ResumeBuilder from './pages/ResumeBuilder';
 import PublicPortfolio from './pages/PublicPortfolio';
 import NotFound from './pages/NotFound';
+import OAuthCallback from './pages/OAuthCallback';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -42,6 +43,9 @@ function App() {
                 <ResumeBuilder />
               </ProtectedRoute>
             } />
+
+            {/* OAuth Callback */}
+            <Route path="/auth/callback" element={<OAuthCallback />} />
 
             {/* Public Portfolio Route */}
             <Route path="/p/:slug" element={<PublicPortfolio />} />

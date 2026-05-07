@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '../context/AuthContext';
 import { fetchPortfolio, createPortfolio } from '../store/portfolioSlice';
@@ -11,6 +11,7 @@ import { usePortfolioSave } from '../hooks/usePortfolioSave';
 import { Skeleton } from '../components/ui/Skeleton';
 import { Save, ExternalLink, ChevronLeft } from 'lucide-react';
 import { generatePortfolioHTML } from '../components/portfolio/portfolioExporter';
+import { useToast } from '../context/ToastContext';
 
 const GitHubIcon = ({ size = 16 }) => (
   <svg width={size} height={size} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true" style={{ flexShrink: 0 }}>
@@ -20,14 +21,30 @@ const GitHubIcon = ({ size = 16 }) => (
 
 export default function PortfolioBuilder() {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
   const { user } = useAuth();
   const { data: portfolio, loading } = useSelector(s => s.portfolio);
   const { save, saving } = usePortfolioSave();
+  const { success: toastSuccess, error: toastError } = useToast();
   const [githubModalOpen, setGithubModalOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState('edit');
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const [savedAgo, setSavedAgo] = useState('');
+
+  // Show toast for GitHub connect result
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const github = params.get('github');
+    if (github === 'connected') {
+      toastSuccess('GitHub connected! You can now import your repos.');
+      // Clean up URL
+      window.history.replaceState({}, '', '/portfolio-builder');
+    } else if (github === 'failed') {
+      toastError('GitHub connection failed. Please try again.');
+      window.history.replaceState({}, '', '/portfolio-builder');
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Track last-save time from localStorage writes
   useEffect(() => {
@@ -109,7 +126,11 @@ export default function PortfolioBuilder() {
               <GitHubIcon size={14} /> Import GitHub
             </button>
           ) : (
-            <button className="btn btn-ghost btn-sm" onClick={() => window.location.href = '/api/auth/github'}
+            <button className="btn btn-ghost btn-sm"
+              onClick={() => {
+                const token = localStorage.getItem('token');
+                window.location.href = `http://localhost:5000/api/auth/github/connect?token=${token}`;
+              }}
               title="Connect GitHub to import repos">
               <GitHubIcon size={14} /> Connect GitHub
             </button>

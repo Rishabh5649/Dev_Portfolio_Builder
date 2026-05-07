@@ -10,28 +10,56 @@ const templates = [
 
 const ResumeTemplateSelector = ({ currentTemplate, onSelect }) => {
   return (
-    <div className="mb-6">
-      <h3 className="text-sm font-medium text-gray-700 mb-3">Resume Template</h3>
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+    <div style={{ marginBottom: '24px' }}>
+      <h3 style={{
+        fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)',
+        marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.08em'
+      }}>Resume Template</h3>
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+        gap: '12px'
+      }}>
         {templates.map((t) => (
           <div
             key={t.id}
             onClick={() => onSelect(t.id)}
-            className={`
-              relative p-3 rounded-lg border-2 cursor-pointer transition-all
-              ${currentTemplate === t.id 
-                ? 'border-indigo-600 bg-indigo-50 shadow-sm' 
-                : 'border-gray-200 bg-white hover:border-indigo-300 hover:bg-gray-50'
+            style={{
+              position: 'relative', padding: '12px', borderRadius: 'var(--radius-sm)',
+              border: '2px solid ' + (currentTemplate === t.id ? 'var(--accent)' : 'var(--border)'),
+              background: currentTemplate === t.id ? 'var(--accent-dim)' : 'var(--bg-surface)',
+              cursor: 'pointer', transition: 'all 0.2s'
+            }}
+            onMouseEnter={e => {
+              if (currentTemplate !== t.id) {
+                e.currentTarget.style.borderColor = 'var(--accent)';
+                e.currentTarget.style.background = 'var(--bg-elevated)';
               }
-            `}
+            }}
+            onMouseLeave={e => {
+              if (currentTemplate !== t.id) {
+                e.currentTarget.style.borderColor = 'var(--border)';
+                e.currentTarget.style.background = 'var(--bg-surface)';
+              }
+            }}
           >
             {currentTemplate === t.id && (
-              <div className="absolute -top-2 -right-2 bg-indigo-600 rounded-full p-1 text-white shadow-sm">
-                <Check className="w-3 h-3" />
+              <div style={{
+                position: 'absolute', top: '-8px', right: '-8px',
+                background: 'var(--accent)', borderRadius: '50%', padding: '4px',
+                color: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <Check size={14} />
               </div>
             )}
-            <div className="font-semibold text-sm text-gray-900">{t.name}</div>
-            <div className="text-xs text-gray-500 mt-1 leading-snug">{t.desc}</div>
+            <div style={{
+              fontWeight: 600, fontSize: '13px',
+              color: 'var(--text-primary)', marginBottom: '4px'
+            }}>{t.name}</div>
+            <div style={{
+              fontSize: '11px', color: 'var(--text-muted)',
+              lineHeight: 1.3
+            }}>{t.desc}</div>
           </div>
         ))}
       </div>

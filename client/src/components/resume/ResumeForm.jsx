@@ -43,29 +43,56 @@ const ResumeForm = () => {
   if (!formData) return null;
 
   return (
-    <div className="space-y-8 pb-10">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', paddingBottom: '40px' }}>
       
       {/* Save & Export Controls */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 sticky top-0 z-20">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Document Settings</h2>
+      <div style={{
+        background: 'var(--bg-elevated)', padding: '16px',
+        borderRadius: 'var(--radius-md)', border: '1px solid var(--border)',
+        position: 'sticky', top: 0, zIndex: 20
+      }}>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between',
+          alignItems: 'center', marginBottom: '12px'
+        }}>
+          <h2 style={{
+            fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)',
+            textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0
+          }}>Document Settings</h2>
           <button
             onClick={saveChanges}
             disabled={!isDirty || isSaving}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <Save className="h-4 w-4 mr-2" />
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              padding: '8px 16px', border: 'none',
+              borderRadius: 'var(--radius-sm)',
+              background: isDirty && !isSaving ? 'var(--accent)' : 'var(--bg-surface)',
+              color: isDirty && !isSaving ? '#fff' : 'var(--text-muted)',
+              cursor: isDirty && !isSaving ? 'pointer' : 'not-allowed',
+              fontSize: '13px', fontWeight: 600, transition: 'all 0.2s',
+              opacity: (!isDirty || isSaving) ? 0.5 : 1
+            }}>
+            <Save size={14} />
             {isSaving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
         
         {/* Font size manual override */}
-        <div className="mb-2 text-sm text-gray-700 flex items-center justify-between">
+        <div style={{
+          marginBottom: '12px', fontSize: '13px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          color: 'var(--text-secondary)'
+        }}>
           <span>Font Size Override:</span>
           <select 
             value={formData.fontSizeOverride || ''} 
             onChange={(e) => handleChange('fontSizeOverride', e.target.value ? Number(e.target.value) : null)}
-            className="ml-2 border border-gray-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-indigo-500"
+            style={{
+              marginLeft: '12px', border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)', padding: '6px 12px',
+              background: 'var(--bg-surface)', color: 'var(--text-primary)',
+              fontSize: '12px', cursor: 'pointer', outline: 'none'
+            }}
           >
             <option value="">Auto-Fit (Smart)</option>
             <option value="9">9 pt</option>
@@ -96,114 +123,130 @@ const ResumeForm = () => {
       {/* Editor Sections based on active layout order */}
       {formData.sectionOrder.map((section) => {
         
-        // Hide from form editor visually if user hid it entirely? 
-        // No, we should let them edit it, but maybe style it faded.
         const isHidden = formData.hiddenSections?.includes(section);
         
         return (
-          <div key={section} className={`bg-white p-6 rounded-lg shadow-sm border border-gray-200 transition-opacity ${isHidden ? 'opacity-50' : ''}`}>
+          <div key={section} style={{
+            background: 'var(--bg-elevated)', padding: '16px',
+            borderRadius: 'var(--radius-md)', border: '1px solid var(--border)',
+            opacity: isHidden ? 0.5 : 1, transition: 'opacity 0.2s'
+          }}>
             
-            <div className="mb-4 pb-2 border-b border-gray-100 flex items-center justify-between">
+            <div style={{
+              marginBottom: '16px', paddingBottom: '12px',
+              borderBottom: '1px solid var(--border)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+            }}>
               <EditableLabel
                 value={formData.sectionLabels[section] || section}
                 onChange={(v) => handleLabelChange(section, v)}
-                className="text-xl font-bold text-gray-900 capitalize"
+                style={{
+                  fontSize: '16px', fontWeight: 700,
+                  color: 'var(--text-primary)', textTransform: 'capitalize'
+                }}
               />
-              {isHidden && <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded font-medium">HIDDEN</span>}
+              {isHidden && <span style={{
+                fontSize: '11px', background: 'var(--accent-dim)',
+                color: 'var(--accent)', padding: '4px 10px', borderRadius: '4px',
+                fontWeight: 600, textTransform: 'uppercase'
+              }}>Hidden</span>}
             </div>
 
             {section === 'header' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input className="input-field" placeholder="Full Name" value={formData.header.fullName} onChange={(e) => handleHeaderChange('fullName', e.target.value)} />
-                <input className="input-field" placeholder="Professional Title / Headline" value={formData.header.title} onChange={(e) => handleHeaderChange('title', e.target.value)} />
-                <input className="input-field" placeholder="Email" value={formData.header.email} onChange={(e) => handleHeaderChange('email', e.target.value)} />
-                <input className="input-field" placeholder="Phone" value={formData.header.phone} onChange={(e) => handleHeaderChange('phone', e.target.value)} />
-                <input className="input-field" placeholder="Location" value={formData.header.location} onChange={(e) => handleHeaderChange('location', e.target.value)} />
-                <input className="input-field" placeholder="LinkedIn URL" value={formData.header.linkedin} onChange={(e) => handleHeaderChange('linkedin', e.target.value)} />
-                <input className="input-field" placeholder="GitHub URL" value={formData.header.github} onChange={(e) => handleHeaderChange('github', e.target.value)} />
-                <input className="input-field" placeholder="Portfolio URL" value={formData.header.portfolio} onChange={(e) => handleHeaderChange('portfolio', e.target.value)} />
+              <div style={{
+                display: 'grid', gridTemplateColumns: '1fr 1fr',
+                gap: '12px'
+              }}>
+                <input className="form-input" placeholder="Full Name" value={formData.header.fullName} onChange={(e) => handleHeaderChange('fullName', e.target.value)} />
+                <input className="form-input" placeholder="Professional Title / Headline" value={formData.header.title} onChange={(e) => handleHeaderChange('title', e.target.value)} />
+                <input className="form-input" placeholder="Email" value={formData.header.email} onChange={(e) => handleHeaderChange('email', e.target.value)} />
+                <input className="form-input" placeholder="Phone" value={formData.header.phone} onChange={(e) => handleHeaderChange('phone', e.target.value)} />
+                <input className="form-input" placeholder="Location" value={formData.header.location} onChange={(e) => handleHeaderChange('location', e.target.value)} />
+                <input className="form-input" placeholder="LinkedIn URL" value={formData.header.linkedin} onChange={(e) => handleHeaderChange('linkedin', e.target.value)} />
+                <input className="form-input" placeholder="GitHub URL" value={formData.header.github} onChange={(e) => handleHeaderChange('github', e.target.value)} />
+                <input className="form-input" placeholder="Portfolio URL" value={formData.header.portfolio} onChange={(e) => handleHeaderChange('portfolio', e.target.value)} />
               </div>
             )}
 
             {section === 'summary' && (
               <div>
                 <textarea
-                  className="input-field min-h-[100px]"
+                  className="form-textarea"
                   placeholder="Professional Summary (keep it to 2-3 lines for best fit)"
                   value={formData.summary}
                   onChange={(e) => handleChange('summary', e.target.value)}
                   maxLength={500}
+                  style={{ minHeight: '100px' }}
                 />
-                <div className="text-right text-xs text-gray-500 mt-1">
+                <div style={{
+                  textAlign: 'right', fontSize: '11px',
+                  color: 'var(--text-muted)', marginTop: '6px'
+                }}>
                   {formData.summary?.length || 0} / 300 recommended chars
                 </div>
               </div>
             )}
 
             {section === 'experience' && (
-               <div className="space-y-4">
-                 <p className="text-sm text-gray-500 italic block">Hint: Edit list items directly in the form below. To add/remove items massively, update your main Portfolio.</p>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                 <p style={{
+                   fontSize: '12px', color: 'var(--text-muted)',
+                   fontStyle: 'italic', margin: 0
+                 }}>Hint: Edit list items directly in the form below. To add/remove items massively, update your main Portfolio.</p>
                  {formData.experience?.map((exp, idx) => (
-                   <div key={idx} className="bg-gray-50 p-4 border rounded">
-                     <div className="grid grid-cols-2 gap-2 mb-2">
-                       <input className="input-field font-semibold" placeholder="Company" value={exp.company} onChange={e => {
+                   <div key={idx} style={{
+                     background: 'var(--bg-surface)', padding: '12px',
+                     border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)'
+                   }}>
+                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                       <input className="form-input" placeholder="Company" value={exp.company} onChange={e => {
                          const newE = [...formData.experience]; newE[idx] = {...exp, company: e.target.value}; handleChange('experience', newE);
-                       }} />
-                       <input className="input-field text-right" placeholder="Start Date - End Date" value={`${exp.startDate} - ${exp.endDate}`} onChange={e => {
-                         // Simple merge for UX sake in editor
+                       }} style={{ fontWeight: 600 }} />
+                       <input className="form-input" placeholder="Start Date - End Date" value={`${exp.startDate} - ${exp.endDate}`} onChange={e => {
                          const newE = [...formData.experience]; newE[idx] = {...exp, endDate: e.target.value.split('-')[1]?.trim(), startDate: e.target.value.split('-')[0]?.trim()}; handleChange('experience', newE);
-                       }} />
+                       }} style={{ textAlign: 'right' }} />
                      </div>
-                     <div className="grid grid-cols-2 gap-2 mb-2">
-                       <input className="input-field italic" placeholder="Role" value={exp.role} onChange={e => {
+                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                       <input className="form-input" placeholder="Role" value={exp.role} onChange={e => {
                          const newE = [...formData.experience]; newE[idx] = {...exp, role: e.target.value}; handleChange('experience', newE);
-                       }} />
-                       <input className="input-field text-right italic" placeholder="Location" value={exp.location} onChange={e => {
+                       }} style={{ fontStyle: 'italic' }} />
+                       <input className="form-input" placeholder="Location" value={exp.location} onChange={e => {
                          const newE = [...formData.experience]; newE[idx] = {...exp, location: e.target.value}; handleChange('experience', newE);
-                       }} />
+                       }} style={{ fontStyle: 'italic', textAlign: 'right' }} />
                      </div>
-                     <textarea className="input-field min-h-[80px]" placeholder="Bullets (one per line)" value={exp.bullets?.join('\n') || ''} onChange={e => {
+                     <textarea className="form-textarea" placeholder="Bullets (one per line)" value={exp.bullets?.join('\n') || ''} onChange={e => {
                          const newE = [...formData.experience]; newE[idx] = {...exp, bullets: e.target.value.split('\n')}; handleChange('experience', newE);
-                     }} />
+                     }} style={{ minHeight: '80px' }} />
                    </div>
                  ))}
                </div>
             )}
 
-            {/* Keeping education/skills/projects simple for brevity in the form UI */}
+            {/* Auto-synced sections */}
             {section === 'education' && (
-              <div className="text-sm text-gray-500 italic">Auto-synced from portfolio. Edit fields in Portfolio Builder.</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                Auto-synced from portfolio. Edit fields in Portfolio Builder.
+              </div>
             )}
             {section === 'skills' && (
-              <div className="text-sm text-gray-500 italic">Auto-synced from portfolio. Edit fields in Portfolio Builder.</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                Auto-synced from portfolio. Edit fields in Portfolio Builder.
+              </div>
             )}
             {section === 'projects' && (
-              <div className="text-sm text-gray-500 italic">Auto-synced from portfolio. Edit fields in Portfolio Builder.</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                Auto-synced from portfolio. Edit fields in Portfolio Builder.
+              </div>
             )}
             {section === 'certifications' && (
-              <div className="text-sm text-gray-500 italic">Auto-synced from portfolio. Edit fields in Portfolio Builder.</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                Auto-synced from portfolio. Edit fields in Portfolio Builder.
+              </div>
             )}
 
           </div>
         );
       })}
-
-      {/* Global CSS for standard inputs within this form */}
-      <style dangerouslySetInnerHTML={{__html: `
-        .input-field {
-          width: 100%;
-          padding: 0.5rem 0.75rem;
-          border: 1px solid #e5e7eb;
-          border-radius: 0.375rem;
-          font-size: 0.875rem;
-          outline: none;
-          transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-        }
-        .input-field:focus {
-          border-color: #6366f1;
-          box-shadow: 0 0 0 1px #6366f1;
-        }
-      `}} />
     </div>
   );
 };

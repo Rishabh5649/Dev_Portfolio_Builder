@@ -53,18 +53,38 @@ const ExportButtons = () => {
     }
   };
 
+  const buttonStyle = (isDisabled) => ({
+    flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center',
+    padding: '8px 16px', border: 'none', fontSize: '13px', fontWeight: 600,
+    borderRadius: 'var(--radius-sm)', cursor: isDisabled ? 'not-allowed' : 'pointer',
+    transition: 'all 0.2s', opacity: isDisabled ? 0.5 : 1, gap: '8px'
+  });
+
   return (
-    <div className="flex space-x-3 mt-4">
+    <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
       <button
         onClick={() => handleExport('pdf')}
         disabled={exportingPDF || exportingDOCX || isDirty}
-        className="flex-1 flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none disabled:opacity-50"
+        style={{
+          ...buttonStyle(exportingPDF || exportingDOCX || isDirty),
+          background: 'var(--danger-dim)', color: 'var(--danger)'
+        }}
+        onMouseEnter={e => {
+          if (!(exportingPDF || exportingDOCX || isDirty)) {
+            e.currentTarget.style.background = 'var(--danger)';
+            e.currentTarget.style.color = '#fff';
+          }
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.background = 'var(--danger-dim)';
+          e.currentTarget.style.color = 'var(--danger)';
+        }}
       >
         {exportingPDF ? (
-          <span className="animate-pulse">Generating PDF...</span>
+          <span style={{ opacity: 0.7 }}>Generating PDF...</span>
         ) : (
           <>
-            <FileText className="w-4 h-4 mr-2" /> PDF
+            <FileText size={14} /> PDF
           </>
         )}
       </button>
@@ -72,13 +92,26 @@ const ExportButtons = () => {
       <button
         onClick={() => handleExport('docx')}
         disabled={exportingPDF || exportingDOCX || isDirty}
-        className="flex-1 flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none disabled:opacity-50"
+        style={{
+          ...buttonStyle(exportingPDF || exportingDOCX || isDirty),
+          background: 'var(--accent-dim)', color: 'var(--accent)'
+        }}
+        onMouseEnter={e => {
+          if (!(exportingPDF || exportingDOCX || isDirty)) {
+            e.currentTarget.style.background = 'var(--accent)';
+            e.currentTarget.style.color = '#fff';
+          }
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.background = 'var(--accent-dim)';
+          e.currentTarget.style.color = 'var(--accent)';
+        }}
       >
         {exportingDOCX ? (
-          <span className="animate-pulse">Generating DOCX...</span>
+          <span style={{ opacity: 0.7 }}>Generating DOCX...</span>
         ) : (
           <>
-            <Download className="w-4 h-4 mr-2" /> DOCX
+            <Download size={14} /> DOCX
           </>
         )}
       </button>

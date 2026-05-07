@@ -1,179 +1,132 @@
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
+import { LayoutDashboard, Palette, FileText, Settings, LogOut, Menu, X } from 'lucide-react';
+
+const navItems = [
+  { to: '/dashboard',         icon: <LayoutDashboard size={15} />, label: 'Dashboard' },
+  { to: '/portfolio-builder', icon: <Palette size={15} />,         label: 'Portfolio' },
+  { to: '/resume-builder',    icon: <FileText size={15} />,        label: 'Resume' },
+];
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
 
+  const initials = user?.name
+    ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    : 'DP';
+
   return (
-    <nav className="bg-slate-900 text-white shadow-lg sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center font-bold text-sm">
-              DP
+    <nav className="navbar">
+      <div className="navbar-inner">
+        {/* Logo */}
+        <Link to={user ? '/dashboard' : '/'} style={{ textDecoration: 'none' }}>
+          <div className="navbar-logo">
+            <div className="navbar-logo-mark">DP</div>
+            <span>DevPortfolio</span>
+          </div>
+        </Link>
+
+        {/* Desktop Nav */}
+        {user ? (
+          <div className="navbar-links">
+            {navItems.map(item => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={`nav-link ${location.pathname === item.to ? 'active' : ''}`}
+              >
+                {item.icon}
+                {item.label}
+              </Link>
+            ))}
+
+            <div style={{ width: 1, height: 24, background: 'var(--border)', margin: '0 8px' }} />
+
+            <Link
+              to="/settings"
+              className={`nav-link ${location.pathname === '/settings' ? 'active' : ''}`}
+              title="Settings"
+            >
+              <Settings size={15} />
+            </Link>
+
+            <div className="nav-user" onClick={() => {}} title={user.name} style={{ gap: 8 }}>
+              {user.avatar ? (
+                <img src={user.avatar} alt={user.name} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+              ) : (
+                <div className="nav-avatar">{initials}</div>
+              )}
+              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user.name}
+              </span>
             </div>
-            <a href="/" className="text-xl font-bold hover:text-blue-400 transition">
-              DevPortfolio
-            </a>
+
+            <button
+              onClick={handleLogout}
+              className="btn-icon"
+              title="Sign Out"
+              style={{ marginLeft: 4 }}
+            >
+              <LogOut size={15} />
+            </button>
           </div>
-
-          {/* Desktop Menu */}
-          <div className="hidden md:flex items-center space-x-6">
-            {user ? (
-              <>
-                <button
-                  onClick={() => navigate('/portfolio-builder')}
-                  className="hover:text-blue-400 transition text-sm"
-                >
-                  Build
-                </button>
-                <button
-                  onClick={() => navigate('/resume-builder')}
-                  className="hover:text-blue-400 transition text-sm"
-                >
-                  Resume
-                </button>
-                <button
-                  onClick={() => navigate('/settings')}
-                  className="hover:text-blue-400 transition text-sm"
-                >
-                  Settings
-                </button>
-                <div className="flex items-center space-x-3 border-l border-slate-700 pl-6">
-                  {user.avatar && (
-                    <img
-                      src={user.avatar}
-                      alt={user.name}
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                  )}
-                  <span className="text-sm">{user.name}</span>
-                  <button
-                    onClick={handleLogout}
-                    className="p-1.5 hover:bg-slate-800 rounded transition"
-                    title="Logout"
-                  >
-                    <LogOut size={18} />
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => navigate('/login')}
-                  className="hover:text-blue-400 transition text-sm"
-                >
-                  Sign In
-                </button>
-                <button
-                  onClick={() => navigate('/register')}
-                  className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded text-sm transition"
-                >
-                  Get Started
-                </button>
-              </>
-            )}
-          </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden p-2"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
-
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden pb-4 border-t border-slate-700">
-            {user ? (
-              <>
-                <button
-                  onClick={() => {
-                    navigate('/portfolio-builder');
-                    setMobileMenuOpen(false);
-                  }}
-                  className="block w-full text-left px-4 py-2 hover:bg-slate-800 transition"
-                >
-                  Build Portfolio
-                </button>
-                <button
-                  onClick={() => {
-                    navigate('/resume-builder');
-                    setMobileMenuOpen(false);
-                  }}
-                  className="block w-full text-left px-4 py-2 hover:bg-slate-800 transition"
-                >
-                  Build Resume
-                </button>
-                <button
-                  onClick={() => {
-                    navigate('/settings');
-                    setMobileMenuOpen(false);
-                  }}
-                  className="block w-full text-left px-4 py-2 hover:bg-slate-800 transition"
-                >
-                  Settings
-                </button>
-                <div className="px-4 py-2 border-t border-slate-700 mt-2 pt-2">
-                  <div className="flex items-center space-x-2 mb-2">
-                    {user.avatar && (
-                      <img
-                        src={user.avatar}
-                        alt={user.name}
-                        className="w-6 h-6 rounded-full object-cover"
-                      />
-                    )}
-                    <span className="text-sm">{user.name}</span>
-                  </div>
-                  <button
-                    onClick={() => {
-                      handleLogout();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="w-full text-left flex items-center space-x-2 px-2 py-1 hover:bg-slate-800 rounded transition text-sm"
-                  >
-                    <LogOut size={16} />
-                    <span>Logout</span>
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => {
-                    navigate('/login');
-                    setMobileMenuOpen(false);
-                  }}
-                  className="block w-full text-left px-4 py-2 hover:bg-slate-800 transition"
-                >
-                  Sign In
-                </button>
-                <button
-                  onClick={() => {
-                    navigate('/register');
-                    setMobileMenuOpen(false);
-                  }}
-                  className="block w-full text-left px-4 py-2 hover:bg-slate-800 transition bg-blue-500 mx-4 rounded"
-                >
-                  Get Started
-                </button>
-              </>
-            )}
+        ) : (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Link to="/login" className="btn btn-ghost btn-sm">Sign In</Link>
+            <Link to="/register" className="btn btn-primary btn-sm">Get Started</Link>
           </div>
         )}
+
+        {/* Mobile Hamburger */}
+        {user && (
+          <button
+            className="btn-icon"
+            style={{ display: 'none' }}
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Menu"
+          >
+            {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
+        )}
       </div>
+
+      {/* Mobile Dropdown */}
+      {mobileOpen && user && (
+        <div style={{
+          background: 'var(--bg-surface)',
+          borderTop: '1px solid var(--border)',
+          padding: '12px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+        }}>
+          {navItems.map(item => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={`nav-link ${location.pathname === item.to ? 'active' : ''}`}
+              onClick={() => setMobileOpen(false)}
+            >
+              {item.icon}
+              {item.label}
+            </Link>
+          ))}
+          <div className="divider" style={{ margin: '8px 0' }} />
+          <button onClick={handleLogout} className="nav-link" style={{ color: 'var(--danger)' }}>
+            <LogOut size={15} />
+            Sign Out
+          </button>
+        </div>
+      )}
     </nav>
   );
 }

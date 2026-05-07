@@ -16,7 +16,7 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Password is required'],
+    // Not required — OAuth users may not have a password
     minlength: 6,
     select: false,
   },
@@ -24,11 +24,24 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  // OAuth fields
+  googleId: {
+    type: String,
+    default: null,
+  },
+  githubId: {
+    type: String,
+    default: null,
+  },
+  githubUsername: {
+    type: String,
+    default: null,
+  },
 }, { timestamps: true });
 
-// Hash password before saving
+// Hash password before saving (only if password is set)
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
+  if (!this.isModified('password') || !this.password) return next();
   const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
   next();
@@ -36,6 +49,7 @@ userSchema.pre('save', async function (next) {
 
 // Compare password method
 userSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!this.password) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };
 
