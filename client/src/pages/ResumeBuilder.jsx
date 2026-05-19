@@ -447,60 +447,75 @@ const ResumeBuilder = () => {
           />
         )}
 
-        {/* ── FAR LEFT: Slim Section Navigation Sidebar ──────────────────── */}
+        {/* ── FAR LEFT: Beautiful Text Section Navigation Sidebar ─────────── */}
         {sidebarOpen && (
           <div style={{
-            width: '68px',
+            width: '180px',
             flexShrink: 0,
             background: 'var(--bg-elevated)',
             borderRight: '1px solid var(--border)',
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center',
-            padding: '16px 0',
-            gap: '10px',
+            padding: '16px 8px',
+            gap: '6px',
             overflowY: 'auto',
             overflowX: 'hidden',
             zIndex: 11,
             scrollbarWidth: 'none',
           }}>
+            <div style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              color: 'var(--text-muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              padding: '0 10px 10px 10px',
+              borderBottom: '1px solid var(--border)',
+              marginBottom: '8px',
+              whiteSpace: 'nowrap',
+            }}>
+              Sections
+            </div>
             {navSections.map(sec => {
               const isActive = activeSection === sec.key;
               return (
                 <button
                   key={sec.key}
                   onClick={() => scrollToSection(sec.key)}
-                  title={sec.label}
                   className="rb-nav-item"
                   style={{
-                    width: '42px',
-                    height: '42px',
-                    borderRadius: isActive ? '12px' : '50%',
-                    background: isActive ? 'var(--accent)' : 'var(--bg-surface)',
-                    border: '1px solid var(--border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    background: isActive ? 'rgba(108,99,255,0.12)' : 'transparent',
+                    border: 'none',
+                    borderLeft: isActive ? '3px solid var(--accent)' : '3px solid transparent',
+                    color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
+                    fontSize: '12px',
+                    fontWeight: isActive ? 700 : 600,
+                    textAlign: 'left',
                     cursor: 'pointer',
-                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                    position: 'relative',
-                    flexShrink: 0,
-                    boxShadow: isActive ? '0 4px 12px rgba(108,99,255,0.35)' : 'none',
+                    transition: 'all 0.2s ease',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
                   }}
                   onMouseEnter={e => {
                     if (!isActive) {
-                      e.currentTarget.style.background = 'rgba(108,99,255,0.1)';
-                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.background = 'rgba(108,99,255,0.06)';
+                      e.currentTarget.style.color = 'var(--text-primary)';
+                      e.currentTarget.style.paddingLeft = '16px';
                     }
                   }}
                   onMouseLeave={e => {
                     if (!isActive) {
-                      e.currentTarget.style.background = 'var(--bg-surface)';
-                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.color = 'var(--text-secondary)';
+                      e.currentTarget.style.paddingLeft = '14px';
                     }
                   }}
                 >
-                  {renderSectionSVG(sec.key, isActive)}
+                  {sec.label}
                 </button>
               );
             })}
