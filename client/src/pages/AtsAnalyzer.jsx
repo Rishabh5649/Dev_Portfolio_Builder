@@ -677,33 +677,101 @@ export default function AtsAnalyzer() {
     }
   }, [activeCategory, analysis, parsedData]);
 
-  // ── 7. FILE DRAG & DROP READER ──
+  // ── 7. FRONTEND PDF PARSING ENGINE (PDF.JS OVERLAY) ──
+  const loadPdfJS = () => {
+    return new Promise((resolve, reject) => {
+      if (window.pdfjsLib) {
+        resolve(window.pdfjsLib);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
+      script.onload = () => {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        resolve(window.pdfjsLib);
+      };
+      script.onerror = () => {
+        reject(new Error('Failed to load PDF parsing library. Please check your internet connection.'));
+      };
+      document.body.appendChild(script);
+    });
+  };
+
+  const parsePdf = async (file) => {
+    try {
+      const pdfjsLib = await loadPdfJS();
+      const reader = new FileReader();
+      
+      return new Promise((resolve, reject) => {
+        reader.onload = async (e) => {
+          try {
+            const typedarray = new Uint8Array(e.target.result);
+            const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
+            let fullText = '';
+            
+            for (let i = 1; i <= pdf.numPages; i++) {
+              const page = await pdf.getPage(i);
+              const textContent = await page.getTextContent();
+              const pageText = textContent.items.map(item => item.str).join(' ');
+              fullText += pageText + '\n';
+            }
+            resolve(fullText);
+          } catch (err) {
+            reject(new Error('Failed to parse PDF content. The file might be corrupted or image-only (scanned).'));
+          }
+        };
+        reader.onerror = () => reject(new Error('Failed to read PDF file.'));
+        reader.readAsArrayBuffer(file);
+      });
+    } catch (err) {
+      throw new Error(err.message || 'Failed to load PDF extraction engine.');
+    }
+  };
+
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     processFile(file);
   };
 
-  const processFile = (file) => {
+  const processFile = async (file) => {
     setFileName(file.name);
     setErrorMsg('');
 
     const ext = file.name.split('.').pop()?.toLowerCase();
-    if (ext === 'txt') {
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const text = evt.target?.result;
-        if (typeof text === 'string') {
-          setRawText(text);
-          triggerAnalysisAnimation();
+    if (ext === 'pdf') {
+      setIsAnalyzing(true);
+      setAnalysisStage('Loading PDF parsing engine...');
+      try {
+        const text = await parsePdf(file);
+        if (!text.trim()) {
+          setIsAnalyzing(false);
+          setErrorMsg('The uploaded PDF contains no extractable text. It might be scanned or a flattened image. Please upload a standard digital PDF or paste the text directly.');
+          return;
         }
-      };
-      reader.readAsText(file);
-    } else if (ext === 'pdf' || ext === 'docx') {
-      // PDF/DOCX binary limitation helper warning
-      setErrorMsg('Direct binary PDF/DOCX parsing is highly volatile due to complex binary layouts. Copy the raw text from your document (Ctrl+A then Ctrl+C) and paste it into the paste field below for 100% accurate recruiter diagnostics.');
+        setRawText(text);
+        
+        // Proactively continue the animation steps
+        setAnalysisStage('Segmenting sections...');
+        setTimeout(() => {
+          setAnalysisStage('Analyzing leading action verbs...');
+          setTimeout(() => {
+            setAnalysisStage('Auditing quantified metrics...');
+            setTimeout(() => {
+              setAnalysisStage('Evaluating stack keyword specificity...');
+              setTimeout(() => {
+                setIsAnalyzing(false);
+                setShowReport(true);
+              }, 650);
+            }, 550);
+          }, 550);
+        }, 550);
+      } catch (err) {
+        setIsAnalyzing(false);
+        setErrorMsg(err.message || 'Failed to parse PDF document.');
+      }
     } else {
-      setErrorMsg('Unsupported format. Please upload standard TXT text logs, or copy-paste text directly.');
+      setErrorMsg('Unsupported format. Please upload a valid .pdf document, or copy-paste text directly.');
     }
   };
 
@@ -825,7 +893,7 @@ export default function AtsAnalyzer() {
                   transition: 'all 0.2s'
                 }}
               >
-                <UploadCloud size={14} /> Upload Text Document
+                <UploadCloud size={14} /> Upload PDF Resume
               </button>
             </div>
 
@@ -885,11 +953,11 @@ export default function AtsAnalyzer() {
                     <UploadCloud size={38} style={{ color: 'var(--text-muted)', marginBottom: '12px' }} />
                     <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '6px' }}>Drag and Drop your resume document</h3>
                     <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-                      Support formats: standard plain text (.txt)
+                      Supported format: Adobe PDF (.pdf)
                     </p>
                     <label className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', cursor: 'pointer' }}>
-                      Select TXT File
-                      <input type="file" onChange={handleFileUpload} accept=".txt" style={{ display: 'none' }} />
+                      Select PDF File
+                      <input type="file" onChange={handleFileUpload} accept=".pdf" style={{ display: 'none' }} />
                     </label>
                   </div>
                   {fileName && (
