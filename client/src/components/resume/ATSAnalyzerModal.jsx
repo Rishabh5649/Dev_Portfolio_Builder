@@ -64,78 +64,88 @@ export default function ATSAnalyzerModal({
     // A. PROFESSIONAL PRESENCE (5% weight)
     let presenceScore = 100;
     const presenceDeductions = [];
-    if (!header.email) {
-      presenceScore -= 25;
-      presenceDeductions.push({ label: 'Missing Email Contact Info', penalty: -25 });
-    }
-    if (!header.phone) {
-      presenceScore -= 25;
-      presenceDeductions.push({ label: 'Missing Phone Contact Info', penalty: -25 });
-    }
-    if (!header.linkedin) {
-      presenceScore -= 20;
-      presenceDeductions.push({ label: 'Missing LinkedIn Professional Profile', penalty: -20 });
-    }
-    if (!header.github) {
-      presenceScore -= 15;
-      presenceDeductions.push({ label: 'Missing GitHub Portfolio Link', penalty: -15 });
-    }
-    if (!header.portfolio) {
-      presenceScore -= 15;
-      presenceDeductions.push({ label: 'Missing Personal Portfolio link', penalty: -15 });
-    }
+    if (!header.email) { presenceScore -= 12; presenceDeductions.push({ label: 'Missing Email Contact Info', penalty: -12 }); }
+    if (!header.phone) { presenceScore -= 12; presenceDeductions.push({ label: 'Missing Phone Contact Info', penalty: -12 }); }
+    if (!header.linkedin) { presenceScore -= 8; presenceDeductions.push({ label: 'Missing LinkedIn Professional Profile', penalty: -8 }); }
+    if (!header.github) { presenceScore -= 5; presenceDeductions.push({ label: 'Missing GitHub Portfolio Link', penalty: -5 }); }
+    if (!header.portfolio) { presenceScore -= 3; presenceDeductions.push({ label: 'Missing Personal Portfolio link', penalty: -3 }); }
     presenceScore = Math.max(0, presenceScore);
 
-    // B. RESUME COMPLETENESS (10% weight)
+    // Student / Fresher Heuristic Detection
+    const allSummaryText = (summary || '').toLowerCase();
+    const experienceText = experience.map(e => (e.role || '') + ' ' + (e.company || '')).join(' ').toLowerCase();
+    const educationText = education.map(e => (e.degree || '')).join(' ').toLowerCase();
+    const isStudentOrFresher = experience.length <= 1 || 
+      /student|fresher|intern|university|college|pursuing|undergrad|graduate/i.test(allSummaryText + ' ' + experienceText + ' ' + educationText);
+
+    // B. RESUME COMPLETENESS (10% standard weight, 5% fresher weight)
     let completenessScore = 100;
     const completenessDeductions = [];
+    
+    // Check Summary
     if (!summary.trim()) {
       completenessScore -= 15;
       completenessDeductions.push({ label: 'Missing Professional Summary Profile', penalty: -15 });
     }
+
+    // Check Experience
     if (experience.length === 0) {
-      completenessScore -= 25;
-      completenessDeductions.push({ label: 'Missing Work Experience History', penalty: -25 });
+      const penalty = isStudentOrFresher ? -5 : -25;
+      completenessScore -= Math.abs(penalty);
+      completenessDeductions.push({ 
+        label: isStudentOrFresher ? 'Limited work experience for student/fresher profile' : 'Missing Work Experience History', 
+        penalty 
+      });
     }
+
+    // Check Education
     if (education.length === 0) {
       completenessScore -= 15;
       completenessDeductions.push({ label: 'Missing Education Records', penalty: -15 });
     }
+
+    // Check Skills
     if (skillGroups.length === 0) {
       completenessScore -= 15;
       completenessDeductions.push({ label: 'Missing Technical Skills Section', penalty: -15 });
     }
+
+    // Check Projects
     if (projects.length === 0) {
       completenessScore -= 15;
       completenessDeductions.push({ label: 'Missing Technical Projects Section', penalty: -15 });
     }
+
+    // Check Certifications
     if (certifications.length === 0) {
-      completenessScore -= 10;
-      completenessDeductions.push({ label: 'Missing Certifications Block', penalty: -10 });
+      completenessScore -= 8;
+      completenessDeductions.push({ label: 'Missing Certifications Block', penalty: -8 });
     }
-    if (achievements.length === 0 && leadership.length === 0) {
+
+    // Check Extracurricular
+    if (leadership.length === 0) {
       completenessScore -= 5;
-      completenessDeductions.push({ label: 'Missing Extracurricular achievements', penalty: -5 });
+      completenessDeductions.push({ label: 'Missing Extracurricular Leadership', penalty: -5 });
     }
     completenessScore = Math.max(0, completenessScore);
 
-    // C. KEYWORD & SKILLS DIVERSITY (20% weight)
+    // C. KEYWORD & SKILLS DIVERSITY (20% weight, 25% fresher weight)
     let skillsScore = 100;
     const skillsDeductions = [];
     const allSkills = skillGroups.flatMap(sg => sg.skills || []);
     const totalSkillsCount = allSkills.length;
 
     if (totalSkillsCount < 6) {
-      skillsScore -= 25;
-      skillsDeductions.push({ label: 'Sparse technical list (< 6 skills)', penalty: -25 });
+      skillsScore -= 15;
+      skillsDeductions.push({ label: 'Sparse technical list (< 6 skills)', penalty: -15 });
     } else if (totalSkillsCount < 12) {
-      skillsScore -= 10;
-      skillsDeductions.push({ label: 'Moderate tech stacks presence', penalty: -10 });
+      skillsScore -= 5;
+      skillsDeductions.push({ label: 'Moderate tech stacks presence', penalty: -5 });
     }
 
-    if (skillGroups.length < 3) {
-      skillsScore -= 10;
-      skillsDeductions.push({ label: 'Poor skill categories clustering', penalty: -10 });
+    if (skillGroups.length < 2) {
+      skillsScore -= 5;
+      skillsDeductions.push({ label: 'Poor skill categories clustering', penalty: -5 });
     }
 
     // Check duplicates
@@ -146,7 +156,7 @@ export default function ATSAnalyzerModal({
     });
     const duplicateSkills = Object.keys(skillCounts).filter(k => skillCounts[k] > 1);
     if (duplicateSkills.length > 0) {
-      const penalty = duplicateSkills.length * 10;
+      const penalty = Math.min(10, duplicateSkills.length * 3);
       skillsScore -= penalty;
       skillsDeductions.push({ label: `Duplicate skill keywords redundancy (${duplicateSkills.length})`, penalty: -penalty });
     }
@@ -155,7 +165,7 @@ export default function ATSAnalyzerModal({
     const outdatedTech = ['jquery', 'svn', 'cvs', 'ftp', 'frontpage', 'flash'];
     const foundOutdated = allSkills.filter(s => outdatedTech.includes(s.toLowerCase().trim()));
     if (foundOutdated.length > 0) {
-      const penalty = foundOutdated.length * 15;
+      const penalty = Math.min(15, foundOutdated.length * 5);
       skillsScore -= penalty;
       skillsDeductions.push({ label: `Legacy tools listed (${foundOutdated.join(', ')})`, penalty: -penalty });
     }
@@ -177,7 +187,7 @@ export default function ATSAnalyzerModal({
     }
     skillsScore = Math.max(0, skillsScore);
 
-    // D. ACTION VERBS & IMPACT (15% weight)
+    // D. ACTION VERBS & IMPACT (15% weight, 10% fresher weight)
     let impactScore = 100;
     const impactDeductions = [];
     const actionVerbs = new Set([
@@ -199,27 +209,31 @@ export default function ATSAnalyzerModal({
     if (totalBullets > 0) {
       const actionRatio = actionVerbCount / totalBullets;
       if (actionRatio < 0.8) {
-        const penalty = Math.round((0.8 - actionRatio) * 60);
+        const penalty = Math.min(15, Math.round((0.8 - actionRatio) * 30));
         impactScore -= penalty;
         impactDeductions.push({ label: `Non-action leading words ratio (${Math.round((1 - actionRatio) * 100)}%)`, penalty: -penalty });
       }
     } else {
-      impactScore -= 50;
-      impactDeductions.push({ label: 'No experience bullets to evaluate', penalty: -50 });
+      const penalty = isStudentOrFresher ? -5 : -40;
+      impactScore -= Math.abs(penalty);
+      impactDeductions.push({ 
+        label: isStudentOrFresher ? 'Action verbs have lower weight for fresher profile' : 'No experience bullets to evaluate', 
+        penalty 
+      });
     }
 
     // Verb repetition check
     const verbCounts = {};
-    verbList.forEach(v => { verbCounts[v] = (verbCounts[v] || 0) + 1; });
+    verbList.forEach(v => { verbCounts[v] = (v === 'built' || v === 'developed' || v === 'designed') ? Math.max(0, (verbCounts[v] || 0) + 0.3) : (verbCounts[v] || 0) + 1; });
     const repetitiveVerbs = Object.keys(verbCounts).filter(k => verbCounts[k] > 1);
     if (repetitiveVerbs.length > 0) {
-      const penalty = repetitiveVerbs.length * 10;
+      const penalty = Math.min(10, repetitiveVerbs.length * 3);
       impactScore -= penalty;
       impactDeductions.push({ label: `Repetitive leading verbs: "${repetitiveVerbs.join(', ')}"`, penalty: -penalty });
     }
     impactScore = Math.max(0, impactScore);
 
-    // E. CONTENT QUALITY & SPECIFICITY (20% weight)
+    // E. CONTENT QUALITY & SPECIFICITY (20% weight, 25% fresher weight)
     let contentScore = 100;
     const contentDeductions = [];
     let quantifiedCount = 0;
@@ -239,25 +253,26 @@ export default function ATSAnalyzerModal({
     if (totalBullets > 0) {
       const quantRatio = quantifiedCount / totalBullets;
       if (quantRatio < 0.4) {
-        const penalty = 35;
-        contentScore -= penalty;
-        contentDeductions.push({ label: `Low quantified achievements ratio (${Math.round(quantRatio * 100)}%)`, penalty: -penalty });
+        const penalty = isStudentOrFresher ? -5 : -15;
+        contentScore -= Math.abs(penalty);
+        contentDeductions.push({ label: `Low quantified achievements ratio (${Math.round(quantRatio * 100)}%)`, penalty });
       }
     } else {
-      contentScore -= 50;
-      contentDeductions.push({ label: 'No statements to quantify', penalty: -50 });
+      const penalty = isStudentOrFresher ? -5 : -30;
+      contentScore -= Math.abs(penalty);
+      contentDeductions.push({ label: 'No statements to quantify', penalty });
     }
 
     if (vagueWordCount > 0) {
-      const penalty = Math.min(30, vagueWordCount * 10);
+      const penalty = Math.min(10, vagueWordCount * 3);
       contentScore -= penalty;
       contentDeductions.push({ label: `Passive/Vague phrasing warnings (${vagueWordCount})`, penalty: -penalty });
     }
 
     if (technicalDepthCount < 4) {
-      const penalty = 25;
-      contentScore -= penalty;
-      contentDeductions.push({ label: 'Lack of tech depth / system descriptors', penalty: -25 });
+      const penalty = isStudentOrFresher ? -5 : -15;
+      contentScore -= Math.abs(penalty);
+      contentDeductions.push({ label: 'Lack of tech depth / system descriptors', penalty });
     }
     contentScore = Math.max(0, contentScore);
 
@@ -273,18 +288,18 @@ export default function ATSAnalyzerModal({
     });
 
     if (excessivelyLongCount > 0) {
-      const penalty = excessivelyLongCount * 12;
+      const penalty = Math.min(12, excessivelyLongCount * 4);
       readabilityScore -= penalty;
       readabilityDeductions.push({ label: `Verbose bullets > 200 characters (${excessivelyLongCount})`, penalty: -penalty });
     }
     if (underdocumentedCount > 0) {
-      const penalty = underdocumentedCount * 10;
+      const penalty = Math.min(10, underdocumentedCount * 3);
       readabilityScore -= penalty;
       readabilityDeductions.push({ label: `Under-documented bullets < 40 chars (${underdocumentedCount})`, penalty: -penalty });
     }
     if (summary.trim().length > 400) {
-      readabilityScore -= 15;
-      readabilityDeductions.push({ label: 'Professional Profile summary > 400 chars', penalty: -15 });
+      readabilityScore -= 8;
+      readabilityDeductions.push({ label: 'Professional Profile summary > 400 chars', penalty: -8 });
     }
     readabilityScore = Math.max(0, readabilityScore);
 
@@ -294,61 +309,90 @@ export default function ATSAnalyzerModal({
     const isSingleColumn = ['classic', 'minimal', 'developer', 'executive'].includes(r.template || 'classic');
 
     if (!isSingleColumn) {
-      formattingScore -= 25;
-      formattingDeductions.push({ label: 'Multi-column template selection (Parsing risk)', penalty: -25 });
+      formattingScore -= 15;
+      formattingDeductions.push({ label: 'Multi-column template selection (Parsing risk)', penalty: -15 });
     }
     if (spacing.pagePadding && spacing.pagePadding < 8) {
-      formattingScore -= 15;
-      formattingDeductions.push({ label: `Cramped margins (${spacing.pagePadding}mm < 8mm)`, penalty: -15 });
+      formattingScore -= 8;
+      formattingDeductions.push({ label: `Cramped margins (${spacing.pagePadding}mm < 8mm)`, penalty: -8 });
     }
     if (spacing.sectionGap && spacing.sectionGap < 8) {
-      formattingScore -= 15;
-      formattingDeductions.push({ label: `Dense section gaps (${spacing.sectionGap}px < 8px)`, penalty: -15 });
+      formattingScore -= 8;
+      formattingDeductions.push({ label: `Dense section gaps (${spacing.sectionGap}px < 8px)`, penalty: -8 });
     }
     if (fontOverride && fontOverride < 10) {
-      formattingScore -= 15;
-      formattingDeductions.push({ label: `Illegible font override (${fontOverride}pt < 10pt)`, penalty: -15 });
+      formattingScore -= 8;
+      formattingDeductions.push({ label: `Illegible font override (${fontOverride}pt < 10pt)`, penalty: -8 });
     }
     formattingScore = Math.max(0, formattingScore);
 
     // ── FINAL COMBINED WEIGHTED SCORE ──
+    const weights = isStudentOrFresher ? {
+      skills: 0.25,
+      formatting: 0.20,
+      content: 0.25,
+      impact: 0.10,
+      readability: 0.10,
+      completeness: 0.05,
+      presence: 0.05
+    } : {
+      skills: 0.20,
+      formatting: 0.20,
+      content: 0.20,
+      impact: 0.15,
+      readability: 0.10,
+      completeness: 0.10,
+      presence: 0.05
+    };
+
     const primaryScore = Math.round(
-      (skillsScore * 0.20) +
-      (formattingScore * 0.20) +
-      (contentScore * 0.20) +
-      (impactScore * 0.15) +
-      (readabilityScore * 0.10) +
-      (completenessScore * 0.10) +
-      (presenceScore * 0.05)
+      (skillsScore * weights.skills) +
+      (formattingScore * weights.formatting) +
+      (contentScore * weights.content) +
+      (impactScore * weights.impact) +
+      (readabilityScore * weights.readability) +
+      (completenessScore * weights.completeness) +
+      (presenceScore * weights.presence)
     );
 
-    // ── STRICT SCALING NORMALIZATION CAPS (RECRUITER GRADE BRACKETS) ──
+    // ── STRICT SCALING NORMALIZATION & CEILING LOGIC (RECRUITER GRADE BRACKETS) ──
     let finalScore = primaryScore;
 
+    // Soft reductions to bring raw scores into recruiter-realistic ranges:
+    const softMultiplier = isStudentOrFresher ? 0.95 : 0.85;
+    const softMultiplierRep = isStudentOrFresher ? 0.96 : 0.90;
+
+    if (quantifiedCount < 3 && quantifiedCount > 0) {
+      finalScore = Math.round(finalScore * softMultiplier);
+    }
+    if (technicalDepthCount < 3 && technicalDepthCount > 0) {
+      finalScore = Math.round(finalScore * softMultiplierRep);
+    }
+    if (totalBullets < 6 && totalBullets >= 3) {
+      finalScore = Math.round(finalScore * (isStudentOrFresher ? 0.97 : 0.88));
+    }
+
+    // Hard recruiter ceilings to prevent unrealistic score inflation
     if (quantifiedCount === 0) {
-      finalScore = Math.min(finalScore, 52); // Maximum cap for unquantified text
-    } else if (quantifiedCount < 3) {
-      finalScore = Math.round(finalScore * 0.85); // 15% reduction
+      finalScore = Math.min(finalScore, 71); // zero quantified achievements -> overall score cap around 70-72
     }
-
-    if (technicalDepthCount === 0) {
-      finalScore = Math.min(finalScore, 55); // Maximum cap for lack of tech keywords
-    } else if (technicalDepthCount < 3) {
-      finalScore = Math.round(finalScore * 0.90); // 10% reduction
+    if (technicalDepthCount < 3) {
+      finalScore = Math.min(finalScore, 75); // weak technical depth -> cap around 75
     }
-
-    if (totalBullets < 3) {
-      finalScore = Math.min(finalScore, 48); // Maximum cap for extreme brevity
-    } else if (totalBullets < 6) {
-      finalScore = Math.round(finalScore * 0.88); // 12% reduction
-    }
-
     if (vagueWordCount > 2) {
-      finalScore = Math.round(finalScore * 0.92); // 8% reduction
+      finalScore = Math.min(finalScore, 78); // repetitive vague bullets -> cap around 78
+    }
+    if (readabilityScore < 80) {
+      finalScore = Math.min(finalScore, 80); // poor readability -> cap around 80
     }
 
-    // Standardized recruiter normalization bounds:
-    // Weak: 40-60, Average: 55-70, Strong: 68-80, Exceptional: 80-88, Elite: 88-95
+    // Additional strict recruiter caps for extreme brevity
+    if (totalBullets === 0) {
+      finalScore = Math.min(finalScore, 40);
+    } else if (totalBullets < 3) {
+      finalScore = Math.min(finalScore, 50);
+    }
+
     finalScore = Math.max(35, Math.min(95, finalScore));
 
     // BREADCRUMBS READINESS

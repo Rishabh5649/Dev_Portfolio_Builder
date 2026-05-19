@@ -15,6 +15,7 @@ export default function AtsAnalyzer() {
   const [activeCategory, setActiveCategory] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [fileName, setFileName] = useState('');
+  const [pdfSuccessMsg, setPdfSuccessMsg] = useState('');
 
   // ── 1. SMART REGEX TEXT PARSER (EXTRACTS STRUCTURE FROM ANY TEXT) ─────────
   const parsedData = useMemo(() => {
@@ -64,33 +65,41 @@ export default function AtsAnalyzer() {
         if (ghMatch) parsed.header.github = ghMatch[0];
       }
 
-      // Check section transitions
-      const lower = trimmed.toLowerCase();
-      if (/summary|objective|profile|about\s+me/i.test(trimmed) && trimmed.length < 24) {
+      // Check section transitions using a cleaned cleanHeader helper
+      const cleanHeader = trimmed.replace(/[:\-_\[\]\(\)]/g, '').trim().toLowerCase();
+      
+      if (/^(summary|objective|profile|about\s*me|executive\s*summary)$/i.test(cleanHeader) || 
+          (/summary|objective|profile|about\s+me/i.test(trimmed) && trimmed.length < 24)) {
         currentSection = 'summary';
         return;
       }
-      if (/experience|employment|work\s+history|professional\s+background/i.test(trimmed) && trimmed.length < 30) {
+      if (/^(experience|employment|work\s*history|professional\s*background|work\s*experience)$/i.test(cleanHeader) || 
+          (/experience|employment|work\s+history/i.test(trimmed) && trimmed.length < 30)) {
         currentSection = 'experience';
         return;
       }
-      if (/projects|personal\s+projects|academic\s+projects|systems/i.test(trimmed) && trimmed.length < 24) {
+      if (/^(projects|personal\s*projects|academic\s*projects|technical\s*projects)$/i.test(cleanHeader) || 
+          (/projects|personal\s+projects|academic\s+projects/i.test(trimmed) && trimmed.length < 24)) {
         currentSection = 'projects';
         return;
       }
-      if (/skills|technical\s+expertise|technologies|proficiencies/i.test(trimmed) && trimmed.length < 30) {
+      if (/^(skills|technical\s*skills|technical\s*expertise|technologies|proficiencies|skills\s*&\s*tools)$/i.test(cleanHeader) || 
+          (/skills|technical\s+expertise|technologies|proficiencies/i.test(trimmed) && trimmed.length < 30)) {
         currentSection = 'skills';
         return;
       }
-      if (/education|academic\s+background|credentials/i.test(trimmed) && trimmed.length < 24) {
+      if (/^(education|academic\s*background|credentials|academic\s*history)$/i.test(cleanHeader) || 
+          (/education|academic\s+background/i.test(trimmed) && trimmed.length < 24)) {
         currentSection = 'education';
         return;
       }
-      if (/certifications|licenses|courses/i.test(trimmed) && trimmed.length < 35) {
+      if (/^(certifications|licenses|courses|certifications\s*&\s*licenses)$/i.test(cleanHeader) || 
+          (/certifications|licenses|courses/i.test(trimmed) && trimmed.length < 35)) {
         currentSection = 'certifications';
         return;
       }
-      if (/leadership|activities|extracurricular|organizations/i.test(trimmed) && trimmed.length < 30) {
+      if (/^(leadership|activities|extracurricular|organizations|leadership\s*&\s*activities)$/i.test(cleanHeader) || 
+          (/leadership|activities|extracurricular/i.test(trimmed) && trimmed.length < 30)) {
         currentSection = 'leadership';
         return;
       }
@@ -101,32 +110,49 @@ export default function AtsAnalyzer() {
           parsed.summary += (parsed.summary ? ' ' : '') + trimmed;
           break;
         case 'experience':
-          if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*')) {
-            const bulletText = trimmed.replace(/^[•\-\*\s]+/, '');
+          if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*') || trimmed.startsWith('o ')) {
+            const bulletText = trimmed.replace(/^[•\-\*\s\o]+/, '').trim();
             if (tempExperience) {
               tempExperience.bullets.push(bulletText);
             } else {
               tempExperience = { role: 'Software Engineer', company: 'Engineering Corp', duration: '', bullets: [bulletText] };
               parsed.experience.push(tempExperience);
             }
-          } else if (trimmed.length > 5 && trimmed.length < 80) {
+          } else if (trimmed.length > 40) {
+            if (tempExperience) {
+              tempExperience.bullets.push(trimmed);
+            } else {
+              tempExperience = { role: 'Software Engineer', company: 'Engineering Corp', duration: '', bullets: [trimmed] };
+              parsed.experience.push(tempExperience);
+            }
+          } else if (trimmed.length > 4 && trimmed.length < 40) {
             tempExperience = { role: trimmed, company: '', duration: '', bullets: [] };
             parsed.experience.push(tempExperience);
           }
           break;
         case 'projects':
-          if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*')) {
-            const descText = trimmed.replace(/^[•\-\*\s]+/, '');
+          if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*') || trimmed.startsWith('o ')) {
+            const descText = trimmed.replace(/^[•\-\*\s\o]+/, '').trim();
             if (tempProject) {
               tempProject.description += (tempProject.description ? ' ' : '') + descText;
+            } else {
+              tempProject = { title: 'Project Developer', description: descText };
+              parsed.projects.push(tempProject);
             }
-          } else if (trimmed.length > 3 && trimmed.length < 60) {
+          } else if (trimmed.length > 40) {
+            if (tempProject) {
+              tempProject.description += (tempProject.description ? ' ' : '') + trimmed;
+            } else {
+              tempProject = { title: 'Project Developer', description: trimmed };
+              parsed.projects.push(tempProject);
+            }
+          } else if (trimmed.length > 3 && trimmed.length < 40) {
             tempProject = { title: trimmed, description: '' };
             parsed.projects.push(tempProject);
           }
           break;
         case 'skills':
-          const skillsList = trimmed.split(/[,|•\-\*]/).map(s => s.trim()).filter(s => s.length > 1 && s.length < 20);
+          const skillsList = trimmed.split(/[,;|•\-\*]/).map(s => s.trim()).filter(s => s.length > 1 && s.length < 25);
           if (skillsList.length > 0) {
             if (tempSkillGroup) {
               tempSkillGroup.skills.push(...skillsList);
@@ -159,7 +185,40 @@ export default function AtsAnalyzer() {
     return parsed;
   }, [rawText]);
 
-  // ── 2. DETERMINISTIC RECRUITER CALIBRATED SCORING ENGINE ─────────────────
+  // ── 2. PARSING WARNINGS / CONFIDENCE SYSTEM ──
+  const confidenceData = useMemo(() => {
+    if (!rawText.trim()) return { rating: 'High Confidence', score: 100, color: 'var(--success)', desc: '', detectedSections: 5 };
+    
+    // Check which core sections we could detect headers for
+    const hasSummary = /summary|objective|profile|about\s*me/i.test(rawText);
+    const hasExperience = /experience|employment|work\s*history|professional\s*background/i.test(rawText);
+    const hasSkills = /skills|technical\s*expertise|technologies|proficiencies/i.test(rawText);
+    const hasEducation = /education|academic\s*background|credentials/i.test(rawText);
+    const hasProjects = /projects|personal\s*projects|academic\s*projects/i.test(rawText);
+    
+    const detectedSections = [hasSummary, hasExperience, hasSkills, hasEducation, hasProjects].filter(Boolean).length;
+    
+    let rating = 'High Confidence';
+    let score = 95;
+    let color = 'var(--success)';
+    let desc = 'Parser successfully identified core section layouts for standard recruiting diagnostics.';
+    
+    if (detectedSections < 3) {
+      rating = 'Low Confidence';
+      score = 35;
+      color = 'var(--danger)';
+      desc = 'Some sections could not be reliably extracted from the uploaded document. Paste raw text to ensure 100% accuracy.';
+    } else if (detectedSections < 5) {
+      rating = 'Medium Confidence';
+      score = 70;
+      color = 'var(--warning)';
+      desc = 'Parser detected moderate section coverage. Consider double checking standard header names.';
+    }
+    
+    return { rating, score, color, desc, detectedSections, hasSummary, hasExperience, hasSkills, hasEducation, hasProjects };
+  }, [rawText]);
+
+  // ── 3. DETERMINISTIC RECRUITER CALIBRATED SCORING ENGINE ─────────────────
   const analysis = useMemo(() => {
     if (!parsedData) return null;
 
@@ -184,45 +243,120 @@ export default function AtsAnalyzer() {
     });
     const totalBullets = bulletsToCheck.length;
 
+    // Student / Fresher Heuristic Detection
+    const allSummaryText = (summary || '').toLowerCase();
+    const experienceText = experience.map(e => (e.role || '') + ' ' + (e.company || '')).join(' ').toLowerCase();
+    const educationText = education.map(e => (e.degree || '')).join(' ').toLowerCase();
+    const isStudentOrFresher = experience.length <= 1 || 
+      /student|fresher|intern|university|college|pursuing|undergrad|graduate/i.test(allSummaryText + ' ' + experienceText + ' ' + educationText);
+
+    // Parsing confidence check
+    const lowConf = confidenceData?.rating === 'Low Confidence';
+
     // A. PROFESSIONAL PRESENCE (5% weight)
     let presenceScore = 100;
     const presenceDeductions = [];
-    if (!header.email) { presenceScore -= 25; presenceDeductions.push({ label: 'Missing Email Contact Info', penalty: -25 }); }
-    if (!header.phone) { presenceScore -= 25; presenceDeductions.push({ label: 'Missing Phone Contact Info', penalty: -25 }); }
-    if (!header.linkedin) { presenceScore -= 20; presenceDeductions.push({ label: 'Missing LinkedIn Professional Profile', penalty: -20 }); }
-    if (!header.github) { presenceScore -= 15; presenceDeductions.push({ label: 'Missing GitHub Portfolio Link', penalty: -15 }); }
-    if (!header.portfolio) { presenceScore -= 15; presenceDeductions.push({ label: 'Missing Personal Portfolio link', penalty: -15 }); }
+    if (!header.email) { presenceScore -= 12; presenceDeductions.push({ label: 'Missing Email Contact Info', penalty: -12 }); }
+    if (!header.phone) { presenceScore -= 12; presenceDeductions.push({ label: 'Missing Phone Contact Info', penalty: -12 }); }
+    if (!header.linkedin) { presenceScore -= 8; presenceDeductions.push({ label: 'Missing LinkedIn Professional Profile', penalty: -8 }); }
+    if (!header.github) { presenceScore -= 5; presenceDeductions.push({ label: 'Missing GitHub Portfolio Link', penalty: -5 }); }
+    if (!header.portfolio) { presenceScore -= 3; presenceDeductions.push({ label: 'Missing Personal Portfolio link', penalty: -3 }); }
     presenceScore = Math.max(0, presenceScore);
 
-    // B. RESUME COMPLETENESS (10% weight)
+    // B. RESUME COMPLETENESS (10% standard weight, 5% fresher weight)
     let completenessScore = 100;
     const completenessDeductions = [];
-    if (!summary.trim()) { completenessScore -= 15; completenessDeductions.push({ label: 'Missing Professional Summary Profile', penalty: -15 }); }
-    if (experience.length === 0) { completenessScore -= 25; completenessDeductions.push({ label: 'Missing Work Experience History', penalty: -25 }); }
-    if (education.length === 0) { completenessScore -= 15; completenessDeductions.push({ label: 'Missing Education Records', penalty: -15 }); }
-    if (skillGroups.length === 0) { completenessScore -= 15; completenessDeductions.push({ label: 'Missing Technical Skills Section', penalty: -15 }); }
-    if (projects.length === 0) { completenessScore -= 15; completenessDeductions.push({ label: 'Missing Technical Projects Section', penalty: -15 }); }
-    if (certifications.length === 0) { completenessScore -= 10; completenessDeductions.push({ label: 'Missing Certifications Block', penalty: -10 }); }
-    if (leadership.length === 0) { completenessScore -= 5; completenessDeductions.push({ label: 'Missing Extracurricular Leadership', penalty: -5 }); }
+    
+    // Check Summary
+    if (!summary.trim()) {
+      const penalty = lowConf ? -3 : -15;
+      completenessScore -= Math.abs(penalty);
+      completenessDeductions.push({ 
+        label: lowConf ? 'Summary could not be reliably extracted' : 'Missing Professional Summary Profile', 
+        penalty 
+      });
+    }
+
+    // Check Experience
+    if (experience.length === 0) {
+      const penalty = isStudentOrFresher ? -5 : (lowConf ? -5 : -25);
+      completenessScore -= Math.abs(penalty);
+      completenessDeductions.push({ 
+        label: isStudentOrFresher 
+          ? 'Limited work experience for student/fresher profile' 
+          : (lowConf ? 'Work experience could not be reliably extracted from uploaded file' : 'Missing Work Experience History'), 
+        penalty 
+      });
+    }
+
+    // Check Education
+    if (education.length === 0) {
+      const penalty = lowConf ? -4 : -15;
+      completenessScore -= Math.abs(penalty);
+      completenessDeductions.push({ 
+        label: lowConf ? 'Education could not be reliably extracted' : 'Missing Education Records', 
+        penalty 
+      });
+    }
+
+    // Check Skills
+    if (skillGroups.length === 0) {
+      const penalty = lowConf ? -4 : -15;
+      completenessScore -= Math.abs(penalty);
+      completenessDeductions.push({ 
+        label: lowConf ? 'Technical skills could not be reliably extracted' : 'Missing Technical Skills Section', 
+        penalty 
+      });
+    }
+
+    // Check Projects
+    if (projects.length === 0) {
+      const penalty = lowConf ? -4 : -15;
+      completenessScore -= Math.abs(penalty);
+      completenessDeductions.push({ 
+        label: lowConf ? 'Projects could not be reliably extracted' : 'Missing Technical Projects Section', 
+        penalty 
+      });
+    }
+
+    // Check Certifications
+    if (certifications.length === 0) {
+      const penalty = lowConf ? -2 : -8;
+      completenessScore -= Math.abs(penalty);
+      completenessDeductions.push({ 
+        label: lowConf ? 'Certifications could not be reliably extracted' : 'Missing Certifications Block', 
+        penalty 
+      });
+    }
+
+    // Check Extracurricular
+    if (leadership.length === 0) {
+      const penalty = lowConf ? -1 : -5;
+      completenessScore -= Math.abs(penalty);
+      completenessDeductions.push({ 
+        label: lowConf ? 'Extracurricular achievements could not be reliably extracted' : 'Missing Extracurricular Leadership', 
+        penalty 
+      });
+    }
     completenessScore = Math.max(0, completenessScore);
 
-    // C. KEYWORD & SKILLS DIVERSITY (20% weight)
+    // C. KEYWORD & SKILLS DIVERSITY (20% weight, 25% fresher weight)
     let skillsScore = 100;
     const skillsDeductions = [];
     const allSkills = skillGroups.flatMap(sg => sg.skills || []);
     const totalSkillsCount = allSkills.length;
 
     if (totalSkillsCount < 6) {
-      skillsScore -= 25;
-      skillsDeductions.push({ label: 'Sparse technical list (< 6 skills)', penalty: -25 });
+      skillsScore -= 15;
+      skillsDeductions.push({ label: 'Sparse technical list (< 6 skills)', penalty: -15 });
     } else if (totalSkillsCount < 12) {
-      skillsScore -= 10;
-      skillsDeductions.push({ label: 'Moderate tech stacks presence', penalty: -10 });
+      skillsScore -= 5;
+      skillsDeductions.push({ label: 'Moderate tech stacks presence', penalty: -5 });
     }
 
     if (skillGroups.length < 2) {
-      skillsScore -= 10;
-      skillsDeductions.push({ label: 'Poor skill categories clustering', penalty: -10 });
+      skillsScore -= 5;
+      skillsDeductions.push({ label: 'Poor skill categories clustering', penalty: -5 });
     }
 
     const skillCounts = {};
@@ -232,7 +366,7 @@ export default function AtsAnalyzer() {
     });
     const duplicateSkills = Object.keys(skillCounts).filter(k => skillCounts[k] > 1);
     if (duplicateSkills.length > 0) {
-      const penalty = duplicateSkills.length * 10;
+      const penalty = Math.min(10, duplicateSkills.length * 3);
       skillsScore -= penalty;
       skillsDeductions.push({ label: `Duplicate skills keywords redundancy (${duplicateSkills.length})`, penalty: -penalty });
     }
@@ -240,7 +374,7 @@ export default function AtsAnalyzer() {
     const outdatedTech = ['jquery', 'svn', 'cvs', 'ftp', 'frontpage', 'flash'];
     const foundOutdated = allSkills.filter(s => outdatedTech.includes(s.toLowerCase().trim()));
     if (foundOutdated.length > 0) {
-      const penalty = foundOutdated.length * 15;
+      const penalty = Math.min(15, foundOutdated.length * 5);
       skillsScore -= penalty;
       skillsDeductions.push({ label: `Legacy tools listed (${foundOutdated.join(', ')})`, penalty: -penalty });
     }
@@ -258,7 +392,7 @@ export default function AtsAnalyzer() {
     }
     skillsScore = Math.max(0, skillsScore);
 
-    // D. ACTION VERBS & IMPACT (15% weight)
+    // D. ACTION VERBS & IMPACT (15% weight, 10% fresher weight)
     let impactScore = 100;
     const impactDeductions = [];
     const actionVerbs = new Set([
@@ -280,26 +414,30 @@ export default function AtsAnalyzer() {
     if (totalBullets > 0) {
       const actionRatio = actionVerbCount / totalBullets;
       if (actionRatio < 0.8) {
-        const penalty = Math.round((0.8 - actionRatio) * 60);
+        const penalty = Math.min(15, Math.round((0.8 - actionRatio) * 30));
         impactScore -= penalty;
         impactDeductions.push({ label: `Non-action leading words ratio (${Math.round((1 - actionRatio) * 100)}%)`, penalty: -penalty });
       }
     } else {
-      impactScore -= 50;
-      impactDeductions.push({ label: 'No experience bullets to evaluate', penalty: -50 });
+      const penalty = isStudentOrFresher ? -5 : -40;
+      impactScore -= Math.abs(penalty);
+      impactDeductions.push({ 
+        label: isStudentOrFresher ? 'Action verbs have lower weight for fresher profile' : 'No experience bullets to evaluate', 
+        penalty 
+      });
     }
 
     const verbCounts = {};
-    verbList.forEach(v => { verbCounts[v] = (verbCounts[v] || 0) + 1; });
+    verbList.forEach(v => { verbCounts[v] = (v === 'built' || v === 'developed' || v === 'designed') ? Math.max(0, (verbCounts[v] || 0) + 0.3) : (verbCounts[v] || 0) + 1; });
     const repetitiveVerbs = Object.keys(verbCounts).filter(k => verbCounts[k] > 1);
     if (repetitiveVerbs.length > 0) {
-      const penalty = repetitiveVerbs.length * 10;
+      const penalty = Math.min(10, repetitiveVerbs.length * 3);
       impactScore -= penalty;
       impactDeductions.push({ label: `Repetitive leading verbs: "${repetitiveVerbs.join(', ')}"`, penalty: -penalty });
     }
     impactScore = Math.max(0, impactScore);
 
-    // E. CONTENT QUALITY & SPECIFICITY (20% weight)
+    // E. CONTENT QUALITY & SPECIFICITY (20% weight, 25% fresher weight)
     let contentScore = 100;
     const contentDeductions = [];
     let quantifiedCount = 0;
@@ -319,25 +457,26 @@ export default function AtsAnalyzer() {
     if (totalBullets > 0) {
       const quantRatio = quantifiedCount / totalBullets;
       if (quantRatio < 0.4) {
-        const penalty = 35;
-        contentScore -= penalty;
-        contentDeductions.push({ label: `Low quantified achievements ratio (${Math.round(quantRatio * 100)}%)`, penalty: -penalty });
+        const penalty = isStudentOrFresher ? -5 : -15;
+        contentScore -= Math.abs(penalty);
+        contentDeductions.push({ label: `Low quantified achievements ratio (${Math.round(quantRatio * 100)}%)`, penalty });
       }
     } else {
-      contentScore -= 50;
-      contentDeductions.push({ label: 'No statements to quantify', penalty: -50 });
+      const penalty = isStudentOrFresher ? -5 : -30;
+      contentScore -= Math.abs(penalty);
+      contentDeductions.push({ label: 'No statements to quantify', penalty });
     }
 
     if (vagueWordCount > 0) {
-      const penalty = Math.min(30, vagueWordCount * 10);
+      const penalty = Math.min(10, vagueWordCount * 3);
       contentScore -= penalty;
       contentDeductions.push({ label: `Passive/Vague phrasing warnings (${vagueWordCount})`, penalty: -penalty });
     }
 
     if (technicalDepthCount < 4) {
-      const penalty = 25;
-      contentScore -= penalty;
-      contentDeductions.push({ label: 'Lack of tech depth / system descriptors', penalty: -25 });
+      const penalty = isStudentOrFresher ? -5 : -15;
+      contentScore -= Math.abs(penalty);
+      contentDeductions.push({ label: 'Lack of tech depth / system descriptors', penalty });
     }
     contentScore = Math.max(0, contentScore);
 
@@ -353,18 +492,18 @@ export default function AtsAnalyzer() {
     });
 
     if (excessivelyLongCount > 0) {
-      const penalty = excessivelyLongCount * 12;
+      const penalty = Math.min(12, excessivelyLongCount * 4);
       readabilityScore -= penalty;
       readabilityDeductions.push({ label: `Verbose bullets > 200 characters (${excessivelyLongCount})`, penalty: -penalty });
     }
     if (underdocumentedCount > 0) {
-      const penalty = underdocumentedCount * 10;
+      const penalty = Math.min(10, underdocumentedCount * 3);
       readabilityScore -= penalty;
       readabilityDeductions.push({ label: `Under-documented bullets < 40 chars (${underdocumentedCount})`, penalty: -penalty });
     }
     if (summary.trim().length > 400) {
-      readabilityScore -= 15;
-      readabilityDeductions.push({ label: 'Professional Profile summary > 400 chars', penalty: -15 });
+      readabilityScore -= 8;
+      readabilityDeductions.push({ label: 'Professional Profile summary > 400 chars', penalty: -8 });
     }
     readabilityScore = Math.max(0, readabilityScore);
 
@@ -372,53 +511,82 @@ export default function AtsAnalyzer() {
     let formattingScore = 100;
     const formattingDeductions = [];
     if (totalBullets === 0) {
-      formattingScore -= 30;
-      formattingDeductions.push({ label: 'No structured bullet points parsed', penalty: -30 });
+      formattingScore -= 15;
+      formattingDeductions.push({ label: 'No structured bullet points parsed', penalty: -15 });
     }
     if (experience.length > 0 && !experience[0].role) {
-      formattingScore -= 15;
-      formattingDeductions.push({ label: 'Ill-formed employment headers', penalty: -15 });
+      formattingScore -= 8;
+      formattingDeductions.push({ label: 'Ill-formed employment headers', penalty: -8 });
     }
     formattingScore = Math.max(0, formattingScore);
 
     // ── FINAL COMBINED WEIGHTED SCORE ──
+    const weights = isStudentOrFresher ? {
+      skills: 0.25,
+      formatting: 0.20,
+      content: 0.25,
+      impact: 0.10,
+      readability: 0.10,
+      completeness: 0.05,
+      presence: 0.05
+    } : {
+      skills: 0.20,
+      formatting: 0.20,
+      content: 0.20,
+      impact: 0.15,
+      readability: 0.10,
+      completeness: 0.10,
+      presence: 0.05
+    };
+
     const primaryScore = Math.round(
-      (skillsScore * 0.20) +
-      (formattingScore * 0.20) +
-      (contentScore * 0.20) +
-      (impactScore * 0.15) +
-      (readabilityScore * 0.10) +
-      (completenessScore * 0.10) +
-      (presenceScore * 0.05)
+      (skillsScore * weights.skills) +
+      (formattingScore * weights.formatting) +
+      (contentScore * weights.content) +
+      (impactScore * weights.impact) +
+      (readabilityScore * weights.readability) +
+      (completenessScore * weights.completeness) +
+      (presenceScore * weights.presence)
     );
 
-    // ── STRICT SCALING NORMALIZATION CAPS (RECRUITER GRADE BRACKETS) ──
+    // ── STRICT SCALING NORMALIZATION & CEILING LOGIC (RECRUITER GRADE BRACKETS) ──
     let finalScore = primaryScore;
 
+    // Soft reductions to bring raw scores into recruiter-realistic ranges:
+    const softMultiplier = isStudentOrFresher ? 0.95 : 0.85;
+    const softMultiplierRep = isStudentOrFresher ? 0.96 : 0.90;
+
+    if (quantifiedCount < 3 && quantifiedCount > 0) {
+      finalScore = Math.round(finalScore * softMultiplier);
+    }
+    if (technicalDepthCount < 3 && technicalDepthCount > 0) {
+      finalScore = Math.round(finalScore * softMultiplierRep);
+    }
+    if (totalBullets < 6 && totalBullets >= 3) {
+      finalScore = Math.round(finalScore * (isStudentOrFresher ? 0.97 : 0.88));
+    }
+
+    // Hard recruiter ceilings to prevent unrealistic score inflation
     if (quantifiedCount === 0) {
-      finalScore = Math.min(finalScore, 52); // Cap unquantified resumes
-    } else if (quantifiedCount < 3) {
-      finalScore = Math.round(finalScore * 0.85); // 15% reduction
+      finalScore = Math.min(finalScore, 71); // zero quantified achievements -> overall score cap around 70-72
     }
-
-    if (technicalDepthCount === 0) {
-      finalScore = Math.min(finalScore, 55); // Cap zero-tech keywords resumes
-    } else if (technicalDepthCount < 3) {
-      finalScore = Math.round(finalScore * 0.90); // 10% reduction
+    if (technicalDepthCount < 3) {
+      finalScore = Math.min(finalScore, 75); // weak technical depth -> cap around 75
     }
-
-    if (totalBullets < 3) {
-      finalScore = Math.min(finalScore, 48); // Cap extreme brevity
-    } else if (totalBullets < 6) {
-      finalScore = Math.round(finalScore * 0.88); // 12% reduction
-    }
-
     if (vagueWordCount > 2) {
-      finalScore = Math.round(finalScore * 0.92); // 8% reduction
+      finalScore = Math.min(finalScore, 78); // repetitive vague bullets -> cap around 78
+    }
+    if (readabilityScore < 80) {
+      finalScore = Math.min(finalScore, 80); // poor readability -> cap around 80
     }
 
-    // Normalization bounds:
-    // Weak: 40-60, Average: 55-70, Strong: 68-80, Exceptional: 80-88, Elite: 88-95
+    // Additional strict recruiter caps for extreme brevity
+    if (totalBullets === 0) {
+      finalScore = Math.min(finalScore, 40);
+    } else if (totalBullets < 3) {
+      finalScore = Math.min(finalScore, 50);
+    }
+
     finalScore = Math.max(35, Math.min(95, finalScore));
 
     // BREADCRUMBS READINESS
@@ -464,44 +632,8 @@ export default function AtsAnalyzer() {
       formattingDeductions,
       vagueWordCount
     };
-  }, [parsedData]);
+  }, [parsedData, confidenceData]);
 
-  // ── 3. PARSING WARNINGS / CONFIDENCE SYSTEM ──
-  const confidenceData = useMemo(() => {
-    if (!rawText.trim()) return null;
-    
-    let checklist = 0;
-    const totalBullets = (parsedData?.experience || []).flatMap(e => e.bullets || []).filter(Boolean).length;
-    const techWords = (rawText.match(/caching|redis|optimization|api|database|pipeline|latency|throughput|architecture|refactored|migration|cloud|microservices|docker/gi) || []).length;
-    
-    if (rawText.length > 1000) checklist += 25;
-    if (totalBullets >= 5) checklist += 25;
-    if (techWords >= 3) checklist += 25;
-    if (parsedData?.skillGroups?.length >= 2) checklist += 25;
-
-    if (checklist >= 75) {
-      return {
-        rating: 'High Confidence',
-        score: 95,
-        color: 'var(--success)',
-        desc: 'Sufficient content density detected for reliable diagnostics.'
-      };
-    }
-    if (checklist >= 50) {
-      return {
-        rating: 'Medium Confidence',
-        score: 65,
-        color: 'var(--warning)',
-        desc: 'Moderate details parsed. Ensure section headers match standard recruiting conventions.'
-      };
-    }
-    return {
-      rating: 'Low Confidence Alert',
-      score: 30,
-      color: 'var(--danger)',
-      desc: 'Sparse profile details. Paste your complete resume text including experience logs to evaluate accurately.'
-    };
-  }, [rawText, parsedData]);
 
   // ── 4. DENSITY RATING ──
   const densityData = useMemo(() => {
@@ -521,19 +653,21 @@ export default function AtsAnalyzer() {
     if (!analysis) return [];
     const risks = [];
     if (analysis.quantifiedCount < 3) {
+      const isFresher = analysis.completenessDeductions.some(d => d.label.toLowerCase().includes('fresher'));
       risks.push({
         title: 'Lack of Quantified Achievements',
         desc: 'HR reviewers evaluate concrete numeric scale. Bullet points without percentages or integers fail to prove accomplishments.',
-        severity: 'high',
-        deduction: -35
+        severity: isFresher ? 'medium' : 'high',
+        deduction: isFresher ? -5 : -15
       });
     }
     if (analysis.techDepth < 50) {
+      const isFresher = analysis.completenessDeductions.some(d => d.label.toLowerCase().includes('fresher'));
       risks.push({
         title: 'Shallow Keyword Depth',
         desc: 'Missing strong technical keywords lowers search indexing ranks in pipeline tracking applications.',
-        severity: 'high',
-        deduction: -25
+        severity: isFresher ? 'medium' : 'high',
+        deduction: isFresher ? -5 : -15
       });
     }
     if (analysis.vagueWordCount > 2) {
@@ -541,7 +675,7 @@ export default function AtsAnalyzer() {
         title: 'Passive Phrasing Flags',
         desc: 'Frequent helper phrases ("assisted in", "helped on") weaken claims of technical leadership.',
         severity: 'medium',
-        deduction: -15
+        deduction: -10
       });
     }
 
@@ -644,24 +778,26 @@ export default function AtsAnalyzer() {
             deductions: analysis.presenceDeductions
           };
         case 'summary':
+          const summaryDeductions = analysis.completenessDeductions.filter(d => d.label.toLowerCase().includes('summary'));
           return {
             title: 'Summary Profile Audit',
-            score: parsedData?.summary?.trim() ? 100 : 0,
+            score: parsedData?.summary?.trim() ? 100 : (100 + summaryDeductions.reduce((acc, cur) => acc + cur.penalty, 0)),
             whyMatters: 'A professional profile summarizes your background in 3 quick lines.',
             strengths: parsedData?.summary?.trim() ? ['Summary is present and active.'] : [],
-            weaknesses: !parsedData?.summary?.trim() ? ['Missing professional profile summary entirely.'] : [],
+            weaknesses: !parsedData?.summary?.trim() ? [summaryDeductions[0]?.label || 'Missing professional profile summary.'] : [],
             suggestions: ['Draft a 3-sentence summary highlighting your engineering focus.'],
-            deductions: !parsedData?.summary?.trim() ? [{ label: 'Missing Summary section', penalty: -15 }] : []
+            deductions: summaryDeductions
           };
         case 'experience':
+          const expDeductions = analysis.completenessDeductions.filter(d => d.label.toLowerCase().includes('experience') || d.label.toLowerCase().includes('work'));
           return {
             title: 'Work Experience History Audit',
-            score: parsedData?.experience?.length > 0 ? 100 : 0,
+            score: parsedData?.experience?.length > 0 ? 100 : (100 + expDeductions.reduce((acc, cur) => acc + cur.penalty, 0)),
             whyMatters: 'Experience logs prove professional capabilities. Always use bullets.',
             strengths: parsedData?.experience?.length > 0 ? ['Work logs parsed successfully.'] : [],
-            weaknesses: parsedData?.experience?.length === 0 ? ['Missing work history logs entirely.'] : [],
+            weaknesses: parsedData?.experience?.length === 0 ? [expDeductions[0]?.label || 'Missing work history logs.'] : [],
             suggestions: ['Add professional job records using clean standard bullet points.'],
-            deductions: parsedData?.experience?.length === 0 ? [{ label: 'Missing Experience logs', penalty: -25 }] : []
+            deductions: expDeductions
           };
         default:
           return {
@@ -712,8 +848,41 @@ export default function AtsAnalyzer() {
             for (let i = 1; i <= pdf.numPages; i++) {
               const page = await pdf.getPage(i);
               const textContent = await page.getTextContent();
-              const pageText = textContent.items.map(item => item.str).join(' ');
-              fullText += pageText + '\n';
+              const items = textContent.items;
+              if (items.length === 0) continue;
+              
+              // Group text items vertically using translateY coordinate
+              const linesMap = {};
+              items.forEach(item => {
+                const y = Math.round(item.transform[5]); // Y coordinate
+                const x = item.transform[4];            // X coordinate
+                
+                // Find a line within a small vertical threshold of 3.5px tolerance
+                let foundLineY = null;
+                for (const lineY in linesMap) {
+                  if (Math.abs(Number(lineY) - y) <= 3.5) {
+                    foundLineY = lineY;
+                    break;
+                  }
+                }
+                
+                if (foundLineY !== null) {
+                  linesMap[foundLineY].push({ text: item.str, x });
+                } else {
+                  linesMap[y] = [{ text: item.str, x }];
+                }
+              });
+              
+              // Sort lines descending by Y coordinate (PDF.js origin is bottom-left)
+              const sortedLineKeys = Object.keys(linesMap).map(Number).sort((a, b) => b - a);
+              
+              const pageLines = sortedLineKeys.map(y => {
+                // Sort items on the same line from left to right (X coordinate)
+                const lineItems = linesMap[y].sort((a, b) => a.x - b.x);
+                return lineItems.map(item => item.text).join(' ').trim();
+              }).filter(Boolean);
+              
+              fullText += pageLines.join('\n') + '\n';
             }
             resolve(fullText);
           } catch (err) {
@@ -749,23 +918,15 @@ export default function AtsAnalyzer() {
           setErrorMsg('The uploaded PDF contains no extractable text. It might be scanned or a flattened image. Please upload a standard digital PDF or paste the text directly.');
           return;
         }
-        setRawText(text);
         
-        // Proactively continue the animation steps
-        setAnalysisStage('Segmenting sections...');
-        setTimeout(() => {
-          setAnalysisStage('Analyzing leading action verbs...');
-          setTimeout(() => {
-            setAnalysisStage('Auditing quantified metrics...');
-            setTimeout(() => {
-              setAnalysisStage('Evaluating stack keyword specificity...');
-              setTimeout(() => {
-                setIsAnalyzing(false);
-                setShowReport(true);
-              }, 650);
-            }, 550);
-          }, 550);
-        }, 550);
+        // Load text into state and switch active tab to allow raw text editing
+        setRawText(text);
+        setIsAnalyzing(false);
+        setActiveTab('paste');
+        setErrorMsg('');
+        
+        // Show a success message
+        setPdfSuccessMsg(`Successfully parsed PDF "${file.name}"! You can now review, edit, and verify the parsed text below, then click "Initiate Recruiter Diagnostics" to analyze.`);
       } catch (err) {
         setIsAnalyzing(false);
         setErrorMsg(err.message || 'Failed to parse PDF document.');
@@ -908,6 +1069,13 @@ export default function AtsAnalyzer() {
             }}>
               {activeTab === 'paste' ? (
                 <div>
+                  {pdfSuccessMsg && (
+                    <div style={{ display: 'flex', gap: '10px', background: 'rgba(0,224,150,0.06)', border: '1px solid rgba(0,224,150,0.2)', padding: '12px 14px', borderRadius: '8px', color: 'var(--success)', fontSize: '12px', fontWeight: 600, marginBottom: '16px', alignItems: 'center' }}>
+                      <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>{pdfSuccessMsg}</div>
+                      <button onClick={() => setPdfSuccessMsg('')} style={{ background: 'transparent', border: 'none', color: 'var(--success)', cursor: 'pointer', display: 'flex', padding: 0 }}><X size={14} /></button>
+                    </div>
+                  )}
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
                     Paste Raw Resume Content
                   </label>
@@ -1087,6 +1255,32 @@ export default function AtsAnalyzer() {
                   <Printer size={14} /> Export Report
                 </button>
               </div>
+
+              {/* Parsing warning box */}
+              {confidenceData && confidenceData.rating !== 'High Confidence' && (
+                <div style={{
+                  display: 'flex',
+                  gap: '12px',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid rgba(255,184,48,0.2)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '14px 18px',
+                  marginBottom: '24px',
+                  alignItems: 'flex-start'
+                }}>
+                  <AlertCircle size={18} style={{ color: 'var(--warning)', flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <strong style={{ fontSize: '13px', display: 'block', marginBottom: '3px', color: 'var(--text-primary)' }}>
+                      {confidenceData.rating === 'Low Confidence' ? 'Some sections could not be reliably extracted from the uploaded document.' : 'Moderate Section Alignment Detected'}
+                    </strong>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                      {confidenceData.rating === 'Low Confidence'
+                        ? 'Because this parser relies on best-effort client-side heuristics, some resume layouts (especially dense or atypical PDFs) might lose section markers. We have automatically softened deductions to prevent false penalties. Recommend pasting raw resume text for 100% accurate results.'
+                        : 'Core sections were detected but some structural headers could be optimized. We have adjusted deductions slightly to keep score calibration fair. Review the parsed raw text tab to make edits.'}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Core Score Circle Grid */}
               <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '24px', marginBottom: '24px' }}>
