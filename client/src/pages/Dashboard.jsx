@@ -10,7 +10,7 @@ import { useTilt } from '../hooks/useTilt';
 import {
   LayoutDashboard, Palette, FileText, Globe,
   Copy, ExternalLink, CheckCircle2, Clock,
-  ArrowRight, User, Zap,
+  ArrowRight, User, Zap, Sparkles
 } from 'lucide-react';
 import Navbar from '../components/layout/Navbar';
 
@@ -330,6 +330,14 @@ export default function Dashboard() {
             to="/resume-builder"
             accent="#00D4FF"
             cta="Build resume"
+          />
+          <ActionCard
+            icon={<Sparkles size={22} />}
+            title="ATS & Resume Intelligence"
+            desc="Audit your resume with a rule-based weighted scoring engine, visual section heatmap, and detailed keyword insights."
+            to="/resume-builder?ats=true"
+            accent="#00F5D4"
+            cta="Analyze Resume"
           />
           <ActionCard
             icon={<Zap size={22} />}

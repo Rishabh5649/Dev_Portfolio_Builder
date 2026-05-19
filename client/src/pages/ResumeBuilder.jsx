@@ -6,8 +6,9 @@ import { Skeleton } from '../components/ui/Skeleton';
 import Navbar from '../components/layout/Navbar';
 import ResumeForm from '../components/resume/ResumeForm';
 import ResumePreview from '../components/resume/ResumePreview';
-import { Save, Download, FileText, Eye, ArrowLeft, Menu, X, GripVertical, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { Save, Download, FileText, Eye, ArrowLeft, Menu, X, GripVertical, ZoomIn, ZoomOut, RotateCcw, Sparkles } from 'lucide-react';
 import axios from 'axios';
+import ATSAnalyzerModal from '../components/resume/ATSAnalyzerModal';
 
 /* ─── Constants ──────────────────────────────────────────────────────────── */
 const SIDEBAR_MIN  = 260;   // px — editor never collapses below this
@@ -205,6 +206,7 @@ const ResumeBuilder = () => {
   // Navigation & Zoom
   const [activeSection,   setActiveSection] = useState('header');
   const [zoomMultiplier,  setZoomMultiplier] = useState(1.0);
+  const [atsOpen,         setAtsOpen]        = useState(false);
 
   const workspaceRef        = useRef(null);
   const contentHeightRef    = useRef(0);
@@ -213,6 +215,14 @@ const ResumeBuilder = () => {
   const formScrollRef       = useRef(null);
 
   useEffect(() => { dispatch(fetchResume()); }, [dispatch]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('ats') === 'true') {
+      setAtsOpen(true);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   /* ── Drag-to-resize logic ───────────────────────────────────────────────── */
   const handleDividerMouseDown = useCallback((e) => {
@@ -389,6 +399,21 @@ const ResumeBuilder = () => {
         </h1>
 
         <A4Badge pageCount={pageCount} />
+
+        {/* ATS Checker */}
+        <button onClick={() => setAtsOpen(true)} style={{
+          display:'inline-flex', alignItems:'center', gap:'6px',
+          padding:'8px 16px', border:'1px solid var(--border)', borderRadius:'8px',
+          background:'rgba(0, 245, 212, 0.12)',
+          color:'#00F5D4',
+          fontSize:'13px', fontWeight:700,
+          cursor:'pointer', transition:'all 0.2s',
+        }}
+          onMouseEnter={e => { e.currentTarget.style.background='#00F5D4'; e.currentTarget.style.color='#000'; }}
+          onMouseLeave={e => { e.currentTarget.style.background='rgba(0, 245, 212, 0.12)'; e.currentTarget.style.color='#00F5D4'; }}
+        >
+          <Sparkles size={14} /> ATS Checker
+        </button>
 
         {/* Save */}
         <button onClick={handleSave} disabled={!isDirty||isSaving} style={{
@@ -725,6 +750,8 @@ const ResumeBuilder = () => {
       {isDragging && (
         <style>{`body { cursor: col-resize !important; user-select: none !important; }`}</style>
       )}
+
+      <ATSAnalyzerModal open={atsOpen} onClose={() => setAtsOpen(false)} resume={data} />
     </div>
   );
 };
