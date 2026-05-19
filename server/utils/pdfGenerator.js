@@ -369,38 +369,81 @@ const generateHTML = (resume, fontSize) => {
 <body>${body}`;
 };
 
+// ── Shared Puppeteer Instance for ultra-fast PDF Exports ──────────────────────
+let sharedBrowser = null;
+
+const getSharedBrowser = async () => {
+  if (sharedBrowser) {
+    try {
+      // Fast responsiveness check
+      await sharedBrowser.version();
+      return sharedBrowser;
+    } catch (e) {
+      console.warn('[PDF] Shared Puppeteer browser instance died, restarting...', e);
+      try {
+        await sharedBrowser.close();
+      } catch (_) {}
+      sharedBrowser = null;
+    }
+  }
+
+  sharedBrowser = await puppeteer.launch({
+    headless: 'new',
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process',
+      '--disable-extensions',
+      '--disable-default-apps',
+    ],
+  });
+  return sharedBrowser;
+};
+
+// Clean up Chrome zombie process on server exit
+process.on('exit', () => {
+  if (sharedBrowser) {
+    sharedBrowser.close().catch(() => {});
+  }
+});
+
 // ── Puppeteer export ──────────────────────────────────────────────────────────
 exports.generatePDF = async (resume) => {
   const fontSize    = resume.fontSizeOverride || calculateFit(resume);
   const usesWebFont = ['Inter', 'Merriweather', 'Lato', 'Poppins'].includes(resume.fontFamily);
   const html        = generateHTML(resume, fontSize);
 
-  let browser;
+  let page;
   try {
-    browser = await puppeteer.launch({
-      headless: 'new',
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-      ],
-    });
+    const browser = await getSharedBrowser();
+    page = await browser.newPage();
 
     // A4 at 96dpi = 794×1122px (297mm × 96/25.4 = 1122.5 → 1122)
     // Note: use 1122 not 1123 — Puppeteer rounds down, matching Chrome print
     const A4_H_PX = 1122;
 
-    const page = await browser.newPage();
     // Match browser preview viewport exactly
     await page.setViewport({ width: 794, height: A4_H_PX, deviceScaleFactor: 1 });
+
+    // Resource interception: skip media and tracking/websockets during PDF layout compilation
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      const type = req.resourceType();
+      if (type === 'image' || type === 'media' || type === 'websocket') {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+
     // Wait for web fonts; system fonts can use faster domcontentloaded
     await page.setContent(html, {
       waitUntil: usesWebFont ? 'networkidle0' : 'domcontentloaded',
-      timeout: 30000,
+      timeout: 15000,
     });
 
     // ── Measure actual rendered height inside headless Chrome ────────────────
@@ -430,7 +473,7 @@ exports.generatePDF = async (resume) => {
     });
     return pdfBuffer;
   } finally {
-    if (browser) await browser.close().catch(() => {});
+    if (page) await page.close().catch(() => {});
   }
 };
 
