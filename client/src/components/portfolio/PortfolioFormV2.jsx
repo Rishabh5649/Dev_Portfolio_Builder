@@ -169,13 +169,7 @@ export default function PortfolioFormV2() {
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <h2 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: '700' }}>Portfolio Builder</h2>
-        <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>
-          {isSaving ? 'Saving...' : lastSavedTime ? `Last saved: ${new Date(lastSavedTime).toLocaleTimeString()}` : 'All changes are auto-saved'}
-        </p>
-      </div>
+    <div style={{ padding: '20px 24px', maxWidth: '800px', margin: '0 auto' }}>
 
       {/* Personal Info */}
       <AccordionSection title="👤 Personal Information" defaultOpen>
@@ -257,27 +251,27 @@ export default function PortfolioFormV2() {
               fontSize: '13px',
             }}
           >
-            {portfolio.personalInfo?.resume ? '✓ Resume Uploaded' : 'Upload Resume (PDF/DOCX)'}
+            {portfolio.personalInfo?.resumeBase64 || portfolio.personalInfo?.resumeUrl ? '✓ Resume Uploaded' : 'Upload Resume (PDF/DOCX)'}
           </button>
           <input
             id="resume-input"
             type="file"
             accept=".pdf,.docx"
             style={{ display: 'none' }}
-            onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'resume')}
+            onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'resumeBase64')}
           />
         </div>
 
         <FormInput
           label="Availability Status"
-          value={portfolio.personalInfo?.availability}
-          onChange={(e) => dispatch(setPersonalInfo({ availability: e.target.value }))}
+          value={portfolio.personalInfo?.availabilityStatus}
+          onChange={(e) => dispatch(setPersonalInfo({ availabilityStatus: e.target.value }))}
           placeholder="Available for freelance projects"
         />
       </AccordionSection>
 
       {/* Contact Info */}
-      <AccordionSection title="Contact Information">
+      <AccordionSection title="📧 Contact Information">
         <FormInput
           label="Email"
           value={portfolio.contactInfo?.email}
@@ -291,10 +285,16 @@ export default function PortfolioFormV2() {
           placeholder="+1 (555) 123-4567"
         />
         <FormInput
-          label="Location"
-          value={portfolio.contactInfo?.location}
-          onChange={(e) => dispatch(setContactInfo({ location: e.target.value }))}
-          placeholder="City, Country"
+          label="City"
+          value={portfolio.contactInfo?.city}
+          onChange={(e) => dispatch(setContactInfo({ city: e.target.value }))}
+          placeholder="City"
+        />
+        <FormInput
+          label="Country"
+          value={portfolio.contactInfo?.country}
+          onChange={(e) => dispatch(setContactInfo({ country: e.target.value }))}
+          placeholder="Country"
         />
 
         <h5 style={{ marginTop: '16px', marginBottom: '12px', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>Social Links</h5>
@@ -302,7 +302,7 @@ export default function PortfolioFormV2() {
           <FormInput
             key={social}
             label={social.charAt(0).toUpperCase() + social.slice(1)}
-            value={portfolio.contactInfo?.socialLinks?.[social]}
+            value={portfolio.socialLinks?.[social]}
             onChange={(e) => dispatch(setSocialLinks({ [social]: e.target.value }))}
             placeholder={`Your ${social} URL`}
           />
@@ -311,7 +311,7 @@ export default function PortfolioFormV2() {
 
       {/* Work Experience */}
       <AccordionSection
-        title="Work Experience"
+        title={`💼 Work Experience ${portfolio.experience?.length ? `(${portfolio.experience.length})` : ''}`}
         onAddClick={() => dispatch(addExperience({ company: '', title: '', startDate: '', endDate: '', location: '', description: '' }))}
       >
         {(portfolio.experience || []).map((exp, idx) => (
@@ -343,7 +343,7 @@ export default function PortfolioFormV2() {
 
       {/* Education */}
       <AccordionSection
-        title="Education"
+        title={`🎓 Education ${portfolio.education?.length ? `(${portfolio.education.length})` : ''}`}
         onAddClick={() => dispatch(addEducation({ institution: '', degree: '', field: '', startDate: '', endDate: '', grade: '' }))}
       >
         {(portfolio.education || []).map((edu, idx) => (
@@ -375,7 +375,7 @@ export default function PortfolioFormV2() {
       </AccordionSection>
 
       {/* Skills */}
-      <AccordionSection title="Skills">
+      <AccordionSection title={`💻 Skills ${portfolio.skills ? `(${Object.values(portfolio.skills).filter(arr => arr?.length).length} categories)` : ''}`}>
         {['languages', 'frameworks', 'tools', 'databases', 'other'].map((category) => (
           <div key={category} style={{ marginBottom: '16px' }}>
             <label style={{ fontSize: '12px', fontWeight: '600', display: 'block', marginBottom: '4px', color: 'var(--text-secondary)' }}>
@@ -406,7 +406,7 @@ export default function PortfolioFormV2() {
 
       {/* Projects */}
       <AccordionSection
-        title="Projects"
+        title={`🚀 Projects ${portfolio.projects?.length ? `(${portfolio.projects.length})` : ''}`}
         onAddClick={() => dispatch(addProject({ title: '', description: '', technologies: [], links: { github: '', live: '' }, featured: false }))}
       >
         {(portfolio.projects || []).map((proj, idx) => (
@@ -444,7 +444,7 @@ export default function PortfolioFormV2() {
 
       {/* Certifications */}
       <AccordionSection
-        title="Certifications"
+        title={`🏆 Certifications ${portfolio.certifications?.length ? `(${portfolio.certifications.length})` : ''}`}
         onAddClick={() => dispatch(addCertification({ name: '', issuer: '', date: '', url: '', image: '' }))}
       >
         {(portfolio.certifications || []).map((cert, idx) => (
@@ -473,7 +473,7 @@ export default function PortfolioFormV2() {
 
       {/* Achievements */}
       <AccordionSection
-        title="Achievements"
+        title={`⭐ Achievements ${portfolio.achievements?.length ? `(${portfolio.achievements.length})` : ''}`}
         onAddClick={() => dispatch(addAchievement({ title: '', organization: '', date: '', description: '' }))}
       >
         {(portfolio.achievements || []).map((ach, idx) => (
@@ -502,7 +502,7 @@ export default function PortfolioFormV2() {
 
       {/* Testimonials */}
       <AccordionSection
-        title="Testimonials"
+        title={`💬 Testimonials ${portfolio.testimonials?.length ? `(${portfolio.testimonials.length})` : ''}`}
         onAddClick={() => dispatch(addTestimonial({ name: '', role: '', text: '', avatar: '' }))}
       >
         {(portfolio.testimonials || []).map((test, idx) => (
@@ -530,7 +530,7 @@ export default function PortfolioFormV2() {
 
       {/* Blog Articles */}
       <AccordionSection
-        title="Publications"
+        title={`📝 Publications ${portfolio.blog?.length ? `(${portfolio.blog.length})` : ''}`}
         onAddClick={() => dispatch(addBlogArticle({ title: '', date: '', content: '', tags: [] }))}
       >
         {(portfolio.blog || []).map((article, idx) => (
@@ -558,7 +558,7 @@ export default function PortfolioFormV2() {
       </AccordionSection>
 
       {/* Coding Profiles */}
-      <AccordionSection title="Coding Profiles">
+      <AccordionSection title="👨‍💻 Coding Profiles">
         {['github', 'leetcode', 'hackerrank', 'codeforces', 'codechef'].map((profile) => (
           <FormInput
             key={profile}

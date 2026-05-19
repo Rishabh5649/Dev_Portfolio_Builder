@@ -54,34 +54,48 @@ const ExportButtons = () => {
   };
 
   const buttonStyle = (isDisabled) => ({
-    flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center',
-    padding: '8px 16px', border: 'none', fontSize: '13px', fontWeight: 600,
-    borderRadius: 'var(--radius-sm)', cursor: isDisabled ? 'not-allowed' : 'pointer',
-    transition: 'all 0.2s', opacity: isDisabled ? 0.5 : 1, gap: '8px'
+    flex: 1, display: 'inline-flex', justifyContent: 'center', alignItems: 'center',
+    padding: '10px 16px', border: 'none', fontSize: '13px', fontWeight: 600,
+    borderRadius: '6px', cursor: isDisabled ? 'not-allowed' : 'pointer',
+    transition: 'all 0.3s', opacity: isDisabled ? 0.5 : 1, gap: '8px'
   });
 
   return (
-    <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+    <div style={{ display: 'flex', gap: '10px' }}>
       <button
         onClick={() => handleExport('pdf')}
         disabled={exportingPDF || exportingDOCX || isDirty}
         style={{
           ...buttonStyle(exportingPDF || exportingDOCX || isDirty),
-          background: 'var(--danger-dim)', color: 'var(--danger)'
+          background: isDirty || exportingPDF || exportingDOCX ? 'rgba(255, 77, 109, 0.15)' : 'var(--danger-dim)',
+          color: isDirty || exportingPDF || exportingDOCX ? 'rgba(255, 77, 109, 0.6)' : 'var(--danger)'
         }}
         onMouseEnter={e => {
           if (!(exportingPDF || exportingDOCX || isDirty)) {
             e.currentTarget.style.background = 'var(--danger)';
             e.currentTarget.style.color = '#fff';
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 77, 109, 0.2)';
           }
         }}
         onMouseLeave={e => {
-          e.currentTarget.style.background = 'var(--danger-dim)';
-          e.currentTarget.style.color = 'var(--danger)';
+          e.currentTarget.style.background = isDirty || exportingPDF || exportingDOCX ? 'rgba(255, 77, 109, 0.15)' : 'var(--danger-dim)';
+          e.currentTarget.style.color = isDirty || exportingPDF || exportingDOCX ? 'rgba(255, 77, 109, 0.6)' : 'var(--danger)';
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = 'none';
         }}
+        title={isDirty ? 'Save changes before exporting' : 'Export resume as PDF'}
       >
         {exportingPDF ? (
-          <span style={{ opacity: 0.7 }}>Generating PDF...</span>
+          <>
+            <div style={{
+              width: '12px', height: '12px', borderRadius: '50%',
+              border: '2px solid currentColor',
+              borderTop: '2px solid transparent',
+              animation: 'spin 0.8s linear infinite'
+            }} />
+            <span>Generating PDF...</span>
+          </>
         ) : (
           <>
             <FileText size={14} /> PDF
@@ -94,27 +108,47 @@ const ExportButtons = () => {
         disabled={exportingPDF || exportingDOCX || isDirty}
         style={{
           ...buttonStyle(exportingPDF || exportingDOCX || isDirty),
-          background: 'var(--accent-dim)', color: 'var(--accent)'
+          background: isDirty || exportingPDF || exportingDOCX ? 'rgba(108, 99, 255, 0.15)' : 'var(--accent-dim)',
+          color: isDirty || exportingPDF || exportingDOCX ? 'rgba(108, 99, 255, 0.6)' : 'var(--accent)'
         }}
         onMouseEnter={e => {
           if (!(exportingPDF || exportingDOCX || isDirty)) {
             e.currentTarget.style.background = 'var(--accent)';
             e.currentTarget.style.color = '#fff';
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(108, 99, 255, 0.2)';
           }
         }}
         onMouseLeave={e => {
-          e.currentTarget.style.background = 'var(--accent-dim)';
-          e.currentTarget.style.color = 'var(--accent)';
+          e.currentTarget.style.background = isDirty || exportingPDF || exportingDOCX ? 'rgba(108, 99, 255, 0.15)' : 'var(--accent-dim)';
+          e.currentTarget.style.color = isDirty || exportingPDF || exportingDOCX ? 'rgba(108, 99, 255, 0.6)' : 'var(--accent)';
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = 'none';
         }}
+        title={isDirty ? 'Save changes before exporting' : 'Export resume as DOCX'}
       >
         {exportingDOCX ? (
-          <span style={{ opacity: 0.7 }}>Generating DOCX...</span>
+          <>
+            <div style={{
+              width: '12px', height: '12px', borderRadius: '50%',
+              border: '2px solid currentColor',
+              borderTop: '2px solid transparent',
+              animation: 'spin 0.8s linear infinite'
+            }} />
+            <span>Generating DOCX...</span>
+          </>
         ) : (
           <>
             <Download size={14} /> DOCX
           </>
         )}
       </button>
+
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 };

@@ -64,6 +64,7 @@ if (process.env.USE_CLOUDINARY !== 'true') {
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/portfolio', require('./routes/portfolioRoutes'));
 app.use('/api/resume', require('./routes/resumeRoutes'));
+app.use('/api/github', require('./routes/githubRoutes'));
 
 // ─── Error Handler ────────────────────────────────────────────────────────────
 app.use((err, req, res, next) => {

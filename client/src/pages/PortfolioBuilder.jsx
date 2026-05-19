@@ -9,7 +9,7 @@ import PortfolioPreviewV2 from '../components/portfolio/PortfolioPreviewV2';
 import GitHubImportModal from '../components/portfolio/GitHubImportModal';
 import { usePortfolioSave } from '../hooks/usePortfolioSave';
 import { Skeleton } from '../components/ui/Skeleton';
-import { Save, ExternalLink, ChevronLeft } from 'lucide-react';
+import { Save, ExternalLink, ChevronLeft, Download } from 'lucide-react';
 import { generatePortfolioHTML } from '../components/portfolio/portfolioExporter';
 import { useToast } from '../context/ToastContext';
 
@@ -26,7 +26,7 @@ export default function PortfolioBuilder() {
   const { user } = useAuth();
   const { data: portfolio, loading } = useSelector(s => s.portfolio);
   const { save, saving } = usePortfolioSave();
-  const { success: toastSuccess, error: toastError } = useToast();
+  const toast = useToast();
   const [githubModalOpen, setGithubModalOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState('edit');
   const [lastSavedAt, setLastSavedAt] = useState(null);
@@ -37,11 +37,10 @@ export default function PortfolioBuilder() {
     const params = new URLSearchParams(location.search);
     const github = params.get('github');
     if (github === 'connected') {
-      toastSuccess('GitHub connected! You can now import your repos.');
-      // Clean up URL
+      toast.success('GitHub connected! You can now import your repos.');
       window.history.replaceState({}, '', '/portfolio-builder');
     } else if (github === 'failed') {
-      toastError('GitHub connection failed. Please try again.');
+      toast.error('GitHub connection failed. Please try again.');
       window.history.replaceState({}, '', '/portfolio-builder');
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -61,7 +60,7 @@ export default function PortfolioBuilder() {
       const sec = Math.round((Date.now() - lastSavedAt) / 1000);
       if (sec < 5) setSavedAgo('just now');
       else if (sec < 60) setSavedAgo(`${sec}s ago`);
-      else setSavedAgo(`${Math.round(sec/60)}m ago`);
+      else setSavedAgo(`${Math.round(sec / 60)}m ago`);
     };
     update();
     const t = setInterval(update, 5000);
@@ -79,6 +78,29 @@ export default function PortfolioBuilder() {
     } catch (e) { console.error('Preview failed:', e); }
   }, [portfolio]);
 
+  const handleDownloadHTML = useCallback(() => {
+    if (!portfolio) return;
+    try {
+      const html = generatePortfolioHTML(portfolio);
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const name = portfolio?.personalInfo?.fullName
+        ? portfolio.personalInfo.fullName.toLowerCase().replace(/\s+/g, '-')
+        : 'portfolio';
+      a.href = url;
+      a.download = `portfolio-${name}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      toast.success('Portfolio HTML downloaded!');
+    } catch (e) {
+      console.error('Download failed:', e);
+      toast.error('Download failed. Please try again.');
+    }
+  }, [portfolio, toast]);
+
   useEffect(() => {
     dispatch(fetchPortfolio()).then(res => {
       if (!res.payload) dispatch(createPortfolio());
@@ -86,124 +108,184 @@ export default function PortfolioBuilder() {
   }, [dispatch]);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-base)', paddingTop: '60px' }}>
+    /* Full-height flex column — Navbar + top-bar + workspace stack naturally, no fixed overlap */
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: 'var(--bg-base)' }}>
+
+      {/* ── 1. Sticky Navbar ─────────────────────────────────── */}
       <Navbar />
 
-      {/* Top Bar */}
+      {/* ── 2. Builder Action Bar ────────────────────────────── */}
       <div style={{
-        position: 'fixed', top: '60px', left: 0, right: 0,
-        height: '52px', background: 'rgba(10,10,15,0.9)',
-        backdropFilter: 'blur(20px)', borderBottom: '1px solid var(--border)',
-        zIndex: 90, display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between', padding: '0 24px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 20px',
+        height: '52px',
+        flexShrink: 0,
+        background: 'rgba(10,10,15,0.95)',
+        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid var(--border)',
+        gap: '12px',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* Left: back + title + status */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
           <button
             onClick={() => navigate('/dashboard')}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               display: 'flex', alignItems: 'center', color: 'var(--text-secondary)',
-              padding: '6px', borderRadius: '6px', transition: 'all 0.2s',
+              padding: '6px', borderRadius: '6px', transition: 'all 0.2s', flexShrink: 0,
             }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
             onMouseLeave={e => e.currentTarget.style.background = 'none'}
             title="Back to Dashboard"
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={17} />
           </button>
-          <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>Portfolio Builder</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span className="live-dot" />
-            <span style={{ fontSize: '11px', color: 'var(--accent-success)', fontWeight: 500 }}>Live Preview</span>
+
+          <div style={{ width: '1px', height: '20px', background: 'var(--border)', flexShrink: 0 }} />
+
+          <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+            Portfolio Builder
+          </span>
+
+          {/* Live dot */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+            <span className="live-dot" style={{
+              width: 7, height: 7, borderRadius: '50%',
+              background: 'var(--success)', display: 'inline-block',
+              boxShadow: '0 0 6px var(--success)',
+              animation: 'pulse-glow 2s ease-in-out infinite',
+            }} />
+            <span style={{ fontSize: '11px', color: 'var(--success)', fontWeight: 500 }}>Live</span>
           </div>
+
           {savedAgo && (
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Saved {savedAgo}</span>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+              Saved {savedAgo}
+            </span>
           )}
         </div>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+
+        {/* Right: action buttons */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+          {/* GitHub button */}
           {user?.githubUsername ? (
-            <button className="btn btn-secondary btn-sm" onClick={() => setGithubModalOpen(true)}>
-              <GitHubIcon size={14} /> Import GitHub
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => setGithubModalOpen(true)}
+            >
+              <GitHubIcon size={13} /> Import GitHub
             </button>
           ) : (
-            <button className="btn btn-ghost btn-sm"
+            <button
+              className="btn btn-ghost btn-sm"
               onClick={() => {
                 const token = localStorage.getItem('token');
                 window.location.href = `http://localhost:5000/api/auth/github/connect?token=${token}`;
               }}
-              title="Connect GitHub to import repos">
-              <GitHubIcon size={14} /> Connect GitHub
+              title="Connect GitHub to import repos"
+            >
+              <GitHubIcon size={13} /> Connect GitHub
             </button>
           )}
+
+          <div style={{ width: '1px', height: '20px', background: 'var(--border)' }} />
+
           <button
             className="btn btn-ghost btn-sm"
             onClick={handlePreviewNewTab}
             disabled={loading || !portfolio}
-            title="Preview in new tab"
+            title="Open full preview in new tab"
           >
-            <ExternalLink size={14} /> Preview
+            <ExternalLink size={13} /> Preview
           </button>
+
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={handleDownloadHTML}
+            disabled={loading || !portfolio}
+            title="Download as standalone HTML file"
+          >
+            <Download size={13} /> Download HTML
+          </button>
+
           <button
             className="btn btn-primary btn-sm"
             onClick={save}
             disabled={saving || loading}
           >
             {saving
-              ? <><div className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} /> Saving...</>
-              : <><Save size={14} /> Save Portfolio</>
+              ? <><div className="spinner" style={{ width: '13px', height: '13px', borderWidth: '2px' }} /> Saving…</>
+              : <><Save size={13} /> Save Portfolio</>
             }
           </button>
         </div>
       </div>
 
-      {/* Mobile tab bar */}
-      <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
-        height: '56px', background: 'var(--bg-elevated)',
-        borderTop: '1px solid var(--border)', zIndex: 90,
-        display: 'none', alignItems: 'center', justifyContent: 'space-around',
-      }} className="mobile-tab-bar">
-        {[
-          { id: 'edit', label: 'Edit', icon: '✏️' },
-          { id: 'preview', label: 'Preview', icon: '👁' },
-        ].map(tab => (
-          <button key={tab.id} onClick={() => setMobileTab(tab.id)}
-            style={{
-              flex: 1, height: '100%', background: 'none', border: 'none',
-              cursor: 'pointer', color: mobileTab === tab.id ? 'var(--accent)' : 'var(--text-muted)',
-              fontSize: '13px', fontWeight: 600, display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center', gap: '3px',
-            }}>
-            <span style={{ fontSize: '18px' }}>{tab.icon}</span>
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* ── 3. Workspace (Form + Preview side-by-side) ────────── */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
 
-      {/* Main split layout */}
-      <div style={{ paddingTop: '52px', display: 'flex', height: 'calc(100vh - 112px)' }}>
-
-        {/* Left — Form */}
-        <div style={{
-          flex: '0 0 55%', overflowY: 'auto',
-          borderRight: '1px solid var(--border)',
-        }} className="portfolio-form-panel">
+        {/* Left — Form Panel */}
+        <div
+          className={`portfolio-form-panel-builder ${mobileTab === 'edit' ? 'mobile-show' : 'mobile-hide'}`}
+          style={{
+            width: '42%',
+            minWidth: '320px',
+            maxWidth: '560px',
+            flexShrink: 0,
+            overflowY: 'auto',
+            borderRight: '1px solid var(--border)',
+            background: 'var(--bg-surface)',
+          }}
+        >
           {loading ? (
-            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {[...Array(5)].map((_, i) => <Skeleton key={i} height="56px" />)}
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {[...Array(6)].map((_, i) => <Skeleton key={i} height="52px" />)}
             </div>
           ) : (
             <PortfolioFormV2 />
           )}
         </div>
 
-        {/* Right — Preview */}
-        <div style={{
-          flex: '0 0 45%', overflowY: 'hidden',
-          background: 'var(--bg-surface)',
-        }} className="portfolio-preview-panel">
+        {/* Right — Preview Panel */}
+        <div
+          className={`portfolio-preview-panel-builder ${mobileTab === 'preview' ? 'mobile-show' : 'mobile-hide'}`}
+          style={{
+            flex: 1,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            background: 'var(--bg-base)',
+            minWidth: 0,
+          }}
+        >
           <PortfolioPreviewV2 />
         </div>
+      </div>
+
+      {/* ── 4. Mobile Tab Bar (bottom, only on small screens) ── */}
+      <div className="builder-mobile-tabs">
+        {[
+          { id: 'edit', label: 'Edit', icon: '✏️' },
+          { id: 'preview', label: 'Preview', icon: '👁' },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setMobileTab(tab.id)}
+            style={{
+              flex: 1, height: '100%', background: 'none', border: 'none',
+              cursor: 'pointer',
+              color: mobileTab === tab.id ? 'var(--accent)' : 'var(--text-muted)',
+              fontSize: '12px', fontWeight: 600,
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center', gap: '3px',
+            }}
+          >
+            <span style={{ fontSize: '18px' }}>{tab.icon}</span>
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* GitHub Import Modal */}
@@ -214,14 +296,21 @@ export default function PortfolioBuilder() {
       />
 
       <style>{`
-        @media (max-width: 1024px) {
-          .portfolio-form-panel { flex: 0 0 60% !important; }
-          .portfolio-preview-panel { flex: 0 0 40% !important; }
+        /* Mobile tab bar – hidden on desktop */
+        .builder-mobile-tabs {
+          display: none;
+          height: 56px;
+          background: var(--bg-elevated);
+          border-top: 1px solid var(--border);
+          flex-shrink: 0;
         }
+
         @media (max-width: 768px) {
-          .mobile-tab-bar { display: flex !important; }
-          .portfolio-form-panel { display: ${mobileTab === 'edit' ? 'block' : 'none'} !important; flex: 0 0 100% !important; }
-          .portfolio-preview-panel { display: ${mobileTab === 'preview' ? 'block' : 'none'} !important; flex: 0 0 100% !important; }
+          .builder-mobile-tabs { display: flex; }
+          .portfolio-form-panel-builder  { width: 100% !important; max-width: 100% !important; }
+          .portfolio-preview-panel-builder { flex: 0 0 100% !important; }
+          .mobile-hide { display: none !important; }
+          .mobile-show { display: block !important; }
         }
       `}</style>
     </div>

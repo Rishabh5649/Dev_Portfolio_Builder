@@ -12,7 +12,7 @@ exports.generateDOCX = async (resume) => {
   const entryTitleSize = 21; // 10.5pt
   const bodySize = Math.floor(10 * baseSizeScale) * 2;
 
-  const { header, summary, experience, education, skillGroups, projects, certifications, sectionOrder, sectionLabels, hiddenSections } = resume;
+  const { header, summary, experience, education, skillGroups, projects, certifications, publications = [], achievements = [], leadership = [], sectionOrder, sectionLabels = {}, hiddenSections } = resume;
 
   // Contact info builder
   const contactText = [];
@@ -21,10 +21,11 @@ exports.generateDOCX = async (resume) => {
   if (header.phone) contactText.push(new TextRun({ text: ` | ${header.phone}`, color: "555555", size: headerSize }));
   if (header.location) contactText.push(new TextRun({ text: ` | ${header.location}`, color: "555555", size: headerSize }));
   if (header.linkedin) contactText.push(new TextRun({ text: ` | ${header.linkedin}`, color: "555555", size: headerSize }));
+  if (header.github) contactText.push(new TextRun({ text: ` | ${header.github}`, color: "555555", size: headerSize }));
 
   const children = [
     new Paragraph({
-      text: header.fullName.toUpperCase(),
+      text: (header.fullName || '').toUpperCase(),
       heading: HeadingLevel.TITLE,
       alignment: AlignmentType.CENTER,
       spacing: { after: 0 },
@@ -43,12 +44,7 @@ exports.generateDOCX = async (resume) => {
         heading: HeadingLevel.HEADING_1,
         spacing: { before: 120 * baseSizeScale, after: 80 * baseSizeScale },
         border: {
-          bottom: {
-            color: "000000",
-            space: 1,
-            value: BorderStyle.SINGLE,
-            size: 6,
-          },
+          bottom: { color: "000000", space: 1, value: BorderStyle.SINGLE, size: 6 },
         },
       })
     );
@@ -58,152 +54,87 @@ exports.generateDOCX = async (resume) => {
     if (hiddenSections && hiddenSections.includes(section)) return;
 
     if (section === 'summary' && summary) {
-      addSectionHeader(sectionLabels.summary || 'Summary');
-      children.push(
-        new Paragraph({
-          children: [new TextRun({ text: summary, size: bodySize, font: "Calibri" })],
-          spacing: { before: 40 * baseSizeScale, after: 40 * baseSizeScale },
-        })
-      );
+      addSectionHeader(sectionLabels.summary ?? 'Summary');
+      children.push(new Paragraph({ children: [new TextRun({ text: summary, size: bodySize, font: "Calibri" })], spacing: { before: 40, after: 40 } }));
     }
 
-    if (section === 'experience' && experience && experience.length > 0) {
-      const visibleExp = experience.filter(e => !e.hidden);
-      if (visibleExp.length > 0) {
-        addSectionHeader(sectionLabels.experience || 'Work Experience');
-        visibleExp.forEach(exp => {
-          // Company and Date line with right-tab stop
-          children.push(
-            new Paragraph({
-              tabStops: [{ type: TabStopType.RIGHT, position: 10000 }], // ~ 7 inches
-              children: [
-                new TextRun({ text: exp.company, bold: true, size: entryTitleSize, font: "Calibri" }),
-                new TextRun({ text: `\t${exp.startDate} – ${exp.current ? 'Present' : exp.endDate}`, size: bodySize, font: "Calibri" }),
-              ],
-              spacing: { before: 80 * baseSizeScale, after: 40 * baseSizeScale },
-            })
-          );
-          // Role and Location
-          children.push(
-            new Paragraph({
-              tabStops: [{ type: TabStopType.RIGHT, position: 10000 }],
-              children: [
-                new TextRun({ text: exp.role, italics: true, size: bodySize, font: "Calibri" }),
-                new TextRun({ text: exp.location ? `\t${exp.location}` : '', italics: true, size: bodySize, font: "Calibri" }),
-              ],
-              spacing: { after: 40 * baseSizeScale },
-            })
-          );
-          // Bullets
-          if (exp.bullets) {
-            exp.bullets.forEach(bullet => {
-              children.push(
-                new Paragraph({
-                  children: [new TextRun({ text: bullet, size: bodySize, font: "Calibri" })],
-                  bullet: { level: 0 },
-                  spacing: { after: 40 * baseSizeScale },
-                })
-              );
-            });
-          }
+    if (section === 'education' && education?.length > 0) {
+      const vis = education.filter(e => !e.hidden);
+      if (vis.length > 0) {
+        addSectionHeader(sectionLabels.education ?? 'Education');
+        vis.forEach(edu => {
+          children.push(new Paragraph({ tabStops: [{ type: TabStopType.RIGHT, position: 10000 }], children: [new TextRun({ text: edu.institution, bold: true, size: entryTitleSize, font: "Calibri" }), new TextRun({ text: `\t${[edu.startYear, edu.endYear].filter(Boolean).join(' – ')}`, size: bodySize, font: "Calibri" })], spacing: { before: 80, after: 40 } }));
+          children.push(new Paragraph({ children: [new TextRun({ text: `${edu.degree}${edu.field ? `, ${edu.field}` : ''}`, size: bodySize, font: "Calibri" })], spacing: { after: 40 } }));
+          if (edu.showCgpa && edu.cgpa) children.push(new Paragraph({ children: [new TextRun({ text: `GPA: ${edu.cgpa}`, size: bodySize, font: "Calibri" })], spacing: { after: 40 } }));
         });
       }
     }
 
-    if (section === 'education' && education && education.length > 0) {
-      const visibleEdu = education.filter(e => !e.hidden);
-      if (visibleEdu.length > 0) {
-        addSectionHeader(sectionLabels.education || 'Education');
-        visibleEdu.forEach(edu => {
-          children.push(
-            new Paragraph({
-              tabStops: [{ type: TabStopType.RIGHT, position: 10000 }],
-              children: [
-                new TextRun({ text: edu.institution, bold: true, size: entryTitleSize, font: "Calibri" }),
-                new TextRun({ text: `\t${edu.startYear || ''} – ${edu.endYear || ''}`, size: bodySize, font: "Calibri" }),
-              ],
-              spacing: { before: 80 * baseSizeScale, after: 40 * baseSizeScale },
-            })
-          );
-          children.push(
-            new Paragraph({
-              children: [new TextRun({ text: `${edu.degree}${edu.field ? `, ${edu.field}` : ''}`, size: bodySize, font: "Calibri" })],
-              spacing: { after: 40 * baseSizeScale },
-            })
-          );
-          if (edu.showCgpa && edu.cgpa) {
-            children.push(
-              new Paragraph({
-                children: [new TextRun({ text: `CGPA: ${edu.cgpa}`, size: bodySize, font: "Calibri" })],
-                spacing: { after: 40 * baseSizeScale },
-              })
-            );
-          }
-        });
-      }
-    }
-
-    if (section === 'skills' && skillGroups && skillGroups.length > 0) {
-      addSectionHeader(sectionLabels.skills || 'Skills');
+    if (section === 'skills' && skillGroups?.length > 0) {
+      addSectionHeader(sectionLabels.skills ?? 'Skills');
       skillGroups.forEach(group => {
-        children.push(
-          new Paragraph({
-            children: [
-              new TextRun({ text: `${group.category}: `, bold: true, size: bodySize, font: "Calibri" }),
-              new TextRun({ text: group.skills.join(', '), size: bodySize, font: "Calibri" }),
-            ],
-            spacing: { before: 40 * baseSizeScale, after: 40 * baseSizeScale },
-          })
-        );
+        children.push(new Paragraph({ children: [new TextRun({ text: `${group.category}: `, bold: true, size: bodySize, font: "Calibri" }), new TextRun({ text: group.skills.join(', '), size: bodySize, font: "Calibri" })], spacing: { before: 40, after: 40 } }));
       });
     }
 
-    if (section === 'projects' && projects && projects.length > 0) {
-      const visibleProj = projects.filter(e => !e.hidden);
-      if (visibleProj.length > 0) {
-        addSectionHeader(sectionLabels.projects || 'Projects');
-        visibleProj.forEach(proj => {
-          children.push(
-            new Paragraph({
-              tabStops: [{ type: TabStopType.RIGHT, position: 10000 }],
-              children: [
-                new TextRun({ text: proj.name, bold: true, size: entryTitleSize, font: "Calibri" }),
-                new TextRun({ text: ` | ${proj.techStack.join(', ')}`, size: bodySize, font: "Calibri" }),
-                new TextRun({ text: `\t${proj.githubLink ? '[GitHub] ' : ''}${proj.liveLink ? '[Live]' : ''}`, size: bodySize, font: "Calibri" }),
-              ],
-              spacing: { before: 80 * baseSizeScale, after: 40 * baseSizeScale },
-            })
-          );
-          if (proj.description) {
-            children.push(
-              new Paragraph({
-                children: [new TextRun({ text: proj.description, size: bodySize, font: "Calibri" })],
-                spacing: { after: 40 * baseSizeScale },
-              })
-            );
-          }
+    if (section === 'publications' && publications?.length > 0) {
+      const vis = publications.filter(p => !p.hidden);
+      if (vis.length > 0) {
+        addSectionHeader(sectionLabels.publications ?? 'Publications');
+        vis.forEach(pub => {
+          children.push(new Paragraph({ children: [new TextRun({ text: `• ${pub.title}`, bold: true, size: bodySize, font: "Calibri" })], spacing: { before: 60, after: 20 } }));
+          if (pub.publisher || pub.year) children.push(new Paragraph({ children: [new TextRun({ text: `- ${[pub.publisher, pub.year].filter(Boolean).join(' — ')}`, size: bodySize, font: "Calibri", italics: true })], indent: { left: 240 }, spacing: { after: 20 } }));
         });
       }
     }
 
-    if (section === 'certifications' && certifications && certifications.length > 0) {
-      const visibleCert = certifications.filter(e => !e.hidden);
-      if (visibleCert.length > 0) {
-        addSectionHeader(sectionLabels.certifications || 'Certifications');
-        visibleCert.forEach(cert => {
-          children.push(
-            new Paragraph({
-              children: [
-                new TextRun({ text: `${cert.name} — ${cert.issuer} (${cert.year})`, size: bodySize, font: "Calibri" })
-              ],
-              bullet: { level: 0 },
-              spacing: { after: 40 * baseSizeScale },
-            })
-          );
+    if (section === 'projects' && projects?.length > 0) {
+      const vis = projects.filter(e => !e.hidden);
+      if (vis.length > 0) {
+        addSectionHeader(sectionLabels.projects ?? 'Projects');
+        vis.forEach(proj => {
+          children.push(new Paragraph({ children: [new TextRun({ text: `• ${proj.name}`, bold: true, size: entryTitleSize, font: "Calibri" }), proj.techStack?.length ? new TextRun({ text: ` | ${proj.techStack.join(', ')}`, size: bodySize, font: "Calibri" }) : new TextRun({text:''}), new TextRun({ text: proj.githubLink || proj.liveLink ? `  [${proj.githubLink ? 'GitHub' : ''}${proj.githubLink && proj.liveLink ? '/' : ''}${proj.liveLink ? 'Live' : ''}]` : '', size: bodySize, font: "Calibri" })], spacing: { before: 60, after: 20 } }));
+          if (proj.description) children.push(new Paragraph({ children: [new TextRun({ text: `– ${proj.description}`, size: bodySize, font: "Calibri" })], indent: { left: 240 }, spacing: { after: 40 } }));
         });
       }
     }
+
+    if (section === 'experience' && experience?.length > 0) {
+      const vis = experience.filter(e => !e.hidden);
+      if (vis.length > 0) {
+        addSectionHeader(sectionLabels.experience ?? 'Work Experience');
+        vis.forEach(exp => {
+          children.push(new Paragraph({ tabStops: [{ type: TabStopType.RIGHT, position: 10000 }], children: [new TextRun({ text: `• ${exp.role}`, bold: true, size: entryTitleSize, font: "Calibri" }), exp.company ? new TextRun({ text: `, ${exp.company}`, size: bodySize, font: "Calibri" }) : new TextRun({text:''}), new TextRun({ text: `\t${[exp.startDate, exp.current ? 'Present' : exp.endDate].filter(Boolean).join(' – ')}`, size: bodySize, font: "Calibri" })], spacing: { before: 80, after: 40 } }));
+          if (exp.bullets) exp.bullets.filter(b => b?.trim()).forEach(b => children.push(new Paragraph({ children: [new TextRun({ text: `– ${b.replace(/^[•\-–]\s*/, '')}`, size: bodySize, font: "Calibri" })], indent: { left: 240 }, spacing: { after: 40 } })));
+        });
+      }
+    }
+
+    if (section === 'certifications' && certifications?.length > 0) {
+      const vis = certifications.filter(e => !e.hidden);
+      if (vis.length > 0) {
+        addSectionHeader(sectionLabels.certifications ?? 'Certifications');
+        vis.forEach(cert => children.push(new Paragraph({ children: [new TextRun({ text: `${cert.name}${cert.issuer ? ` — ${cert.issuer}` : ''}${cert.year ? ` (${cert.year})` : ''}`, size: bodySize, font: "Calibri" })], bullet: { level: 0 }, spacing: { after: 40 } })));
+      }
+    }
+
+    if (section === 'achievements' && achievements?.length > 0) {
+      const vis = achievements.filter(a => !a.hidden);
+      if (vis.length > 0) {
+        addSectionHeader(sectionLabels.achievements ?? 'Achievements');
+        vis.forEach(a => children.push(new Paragraph({ children: [new TextRun({ text: a.title ? `${a.title}: ` : '', bold: true, size: bodySize, font: "Calibri" }), new TextRun({ text: a.description || '', size: bodySize, font: "Calibri" })], bullet: { level: 0 }, spacing: { after: 40 } })));
+      }
+    }
+
+    if (section === 'leadership' && leadership?.length > 0) {
+      const vis = leadership.filter(l => !l.hidden);
+      if (vis.length > 0) {
+        addSectionHeader(sectionLabels.leadership ?? 'Leadership & Extracurriculars');
+        vis.forEach(l => children.push(new Paragraph({ children: [new TextRun({ text: l.title || '', bold: true, size: bodySize, font: "Calibri" }), new TextRun({ text: l.organization ? `, ${l.organization}` : '', size: bodySize, font: "Calibri" }), new TextRun({ text: l.description ? `: ${l.description}` : '', size: bodySize, font: "Calibri" })], bullet: { level: 0 }, spacing: { after: 40 } })));
+      }
+    }
   });
+
 
   const doc = new Document({
     sections: [{

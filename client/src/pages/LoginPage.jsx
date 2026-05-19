@@ -172,16 +172,22 @@ const LoginPage = () => {
               type="email"
               name="email"
               required
-              placeholder="you@example.com"
+              placeholder="rishabsingh30705@gmail.com"
               value={email}
               onChange={e => setEmail(e.target.value)}
               style={{
-                width: '100%', padding: '11px 14px', borderRadius: '10px', boxSizing: 'border-box',
-                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                color: '#fff', fontSize: '14px', outline: 'none', transition: 'border-color 0.2s',
+                width: '100%', padding: '12px 16px', borderRadius: '10px', boxSizing: 'border-box',
+                background: '#E8E8F0', border: 'none',
+                color: '#1a1a2e', fontSize: '14px', outline: 'none', transition: 'all 0.2s',
               }}
-              onFocus={e => e.target.style.borderColor = '#6366f1'}
-              onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+              onFocus={e => {
+                e.target.style.background = '#DCDCE8';
+                e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.15)';
+              }}
+              onBlur={e => {
+                e.target.style.background = '#E8E8F0';
+                e.target.style.boxShadow = 'none';
+              }}
             />
           </div>
           <div>
@@ -196,12 +202,18 @@ const LoginPage = () => {
               value={password}
               onChange={e => setPassword(e.target.value)}
               style={{
-                width: '100%', padding: '11px 14px', borderRadius: '10px', boxSizing: 'border-box',
-                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                color: '#fff', fontSize: '14px', outline: 'none', transition: 'border-color 0.2s',
+                width: '100%', padding: '12px 16px', borderRadius: '10px', boxSizing: 'border-box',
+                background: '#E8E8F0', border: 'none',
+                color: '#1a1a2e', fontSize: '14px', outline: 'none', transition: 'all 0.2s',
               }}
-              onFocus={e => e.target.style.borderColor = '#6366f1'}
-              onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+              onFocus={e => {
+                e.target.style.background = '#DCDCE8';
+                e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.15)';
+              }}
+              onBlur={e => {
+                e.target.style.background = '#E8E8F0';
+                e.target.style.boxShadow = 'none';
+              }}
             />
           </div>
 
@@ -225,7 +237,7 @@ const LoginPage = () => {
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        input::placeholder { color: #4a5568 !important; }
+        input::placeholder { color: #8080A0 !important; }
       `}</style>
     </div>
   );

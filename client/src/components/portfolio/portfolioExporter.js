@@ -5,9 +5,8 @@
 export function generatePortfolioHTML(portfolio) {
   const {
     personalInfo: p = {},
-    contactInfo: c = {},
     socialLinks: s = {},
-    skills = [],
+    skills = {},
     projects = [],
     education = [],
     experience = [],
@@ -19,6 +18,16 @@ export function generatePortfolioHTML(portfolio) {
     themeCustomization: tc = {},
     template = 'aurora',
   } = portfolio || {};
+
+  // contactInfo with email fallback to personalInfo for backward compat
+  const rawC = portfolio?.contactInfo || {};
+  const c = {
+    email:   rawC.email   || p?.email   || '',
+    phone:   rawC.phone   || p?.phone   || '',
+    city:    rawC.city    || p?.city    || '',
+    country: rawC.country || p?.country || '',
+  };
+
 
   const theme = template;
   const a1 = theme === 'aurora' ? (tc?.auroraAccent1 || '#00C896')
@@ -332,8 +341,8 @@ footer{background:var(--surface);border-top:1px solid var(--bd);padding:40px 80p
     </div>
     ${p?.availabilityStatus?`<div class="availability-badge"><span class="pulse-dot"></span>${esc(p.availabilityStatus)}</div>`:''}
   </div>
-  ${p?.profileImage
-    ?`<div class="hero-photo" data-reveal data-delay="2"><img src="${esc(p.profileImage)}" alt="${esc(p?.fullName)}"></div>`
+  ${(p?.profilePhoto || p?.profileImage)
+    ?`<div class="hero-photo" data-reveal data-delay="2"><img src="${esc(p.profilePhoto || p.profileImage)}" alt="${esc(p?.fullName)}"></div>`
     :`<div class="hero-photo" data-reveal data-delay="2"><div class="hero-initials">${initials}</div></div>`}
 </section>
 <section id="about" class="section">
