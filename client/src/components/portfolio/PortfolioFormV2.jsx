@@ -790,13 +790,13 @@ export default function PortfolioFormV2() {
               border: '1px solid var(--border)',
               borderRadius: '4px',
               fontSize: '13px',
-              backgroundColor: 'var(--bg-secondary)',
-              color: 'var(--text-primary)',
+              backgroundColor: '#1E2535',
+              color: '#FAFAF7',
             }}
           >
-            <option value="aurora">Aurora</option>
-            <option value="obsidian">Obsidian</option>
-            <option value="prism">Prism</option>
+            <option value="aurora" style={{ backgroundColor: '#1E2535', color: '#FAFAF7' }}>Aurora</option>
+            <option value="obsidian" style={{ backgroundColor: '#1E2535', color: '#FAFAF7' }}>Obsidian</option>
+            <option value="prism" style={{ backgroundColor: '#1E2535', color: '#FAFAF7' }}>Prism</option>
           </select>
         </div>
 
