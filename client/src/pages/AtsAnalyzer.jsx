@@ -448,11 +448,27 @@ export default function AtsAnalyzer() {
     const techPattern = /caching|redis|optimization|api|database|pipeline|latency|throughput|architecture|refactored|migration|cloud|microservices|docker|concurrency|concurrent|scalability|scalable|pytorch|tensorflow|cnn|lstm|mern/;
     const vaguePattern = /\b(helped|worked\s+on|assisted|handled|responsible\s+for|tasks\s+included|participated|contributed)\b/i;
 
+    const scaleKeywordsPattern = /latency|throughput|concurrency|concurrent|scalable|scalability|scale|optimize|optimization|reduces|reduced|improves|improved|ms|fps|users|requests|load|accuracy/i;
+    let scaleMetricsCount = 0;
+
     bulletsToCheck.forEach(b => {
-      if (quantPattern.test(b)) quantifiedCount++;
+      const hasQuant = quantPattern.test(b);
+      if (hasQuant) quantifiedCount++;
       if (techPattern.test(b.toLowerCase())) technicalDepthCount++;
       if (vaguePattern.test(b.toLowerCase())) vagueWordCount++;
+      if (hasQuant && scaleKeywordsPattern.test(b.toLowerCase())) {
+        scaleMetricsCount++;
+      }
     });
+
+    let projectQuantifiedCount = 0;
+    projects.forEach(pr => {
+      if (pr.description && quantPattern.test(pr.description)) {
+        projectQuantifiedCount++;
+      }
+    });
+
+    const hasPercentages = /%|percent/i.test(bulletsToCheck.join(' ') + ' ' + (summary || ''));
 
     if (totalBullets > 0) {
       const quantRatio = quantifiedCount / totalBullets;
@@ -567,17 +583,47 @@ export default function AtsAnalyzer() {
     }
 
     // Hard recruiter ceilings to prevent unrealistic score inflation
-    if (quantifiedCount === 0) {
-      finalScore = Math.min(finalScore, 71); // zero quantified achievements -> overall score cap around 70-72
+    // 1. No quantified achievements at all / no percentages -> cap overall score at 70
+    if (quantifiedCount === 0 || !hasPercentages) {
+      finalScore = Math.min(finalScore, 70);
     }
+    // 2. Weak measurable impact (quantified count < 3) -> cap at 76
+    else if (quantifiedCount < 3) {
+      finalScore = Math.min(finalScore, 76);
+    }
+
+    // 3. Weak technical depth -> cap at 75
     if (technicalDepthCount < 3) {
-      finalScore = Math.min(finalScore, 75); // weak technical depth -> cap around 75
+      finalScore = Math.min(finalScore, 75);
     }
+
+    // 4. Repetitive vague bullets -> cap at 78
     if (vagueWordCount > 2) {
-      finalScore = Math.min(finalScore, 78); // repetitive vague bullets -> cap around 78
+      finalScore = Math.min(finalScore, 78);
     }
+
+    // 5. Poor readability -> cap at 80
     if (readabilityScore < 80) {
-      finalScore = Math.min(finalScore, 80); // poor readability -> cap around 80
+      finalScore = Math.min(finalScore, 80);
+    }
+
+    // 6. No strong internship/work experience -> cap at 80-82
+    if (experience.length === 0) {
+      finalScore = Math.min(finalScore, 80);
+    } else if (experience.length === 1) {
+      finalScore = Math.min(finalScore, 82);
+    }
+
+    // 7. Descriptive-only project bullets -> cap at 80
+    if (projects.length > 0 && projectQuantifiedCount === 0) {
+      finalScore = Math.min(finalScore, 80);
+    }
+
+    // 8. No high-scale / performance / optimization metrics -> cap at 82
+    if (scaleMetricsCount === 0) {
+      finalScore = Math.min(finalScore, 82);
+    } else if (scaleMetricsCount < 2) {
+      finalScore = Math.min(finalScore, 84);
     }
 
     // Additional strict recruiter caps for extreme brevity
