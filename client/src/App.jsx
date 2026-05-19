@@ -6,6 +6,7 @@ import RegisterPage from './pages/RegisterPage';
 import Dashboard from './pages/Dashboard';
 import PortfolioBuilder from './pages/PortfolioBuilder';
 import ResumeBuilder from './pages/ResumeBuilder';
+import AtsAnalyzer from './pages/AtsAnalyzer';
 import PublicPortfolio from './pages/PublicPortfolio';
 import NotFound from './pages/NotFound';
 import OAuthCallback from './pages/OAuthCallback';
@@ -41,6 +42,11 @@ function App() {
             <Route path="/resume-builder" element={
               <ProtectedRoute>
                 <ResumeBuilder />
+              </ProtectedRoute>
+            } />
+            <Route path="/ats-analyzer" element={
+              <ProtectedRoute>
+                <AtsAnalyzer />
               </ProtectedRoute>
             } />
 

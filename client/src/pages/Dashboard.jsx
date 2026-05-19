@@ -333,11 +333,11 @@ export default function Dashboard() {
           />
           <ActionCard
             icon={<Sparkles size={22} />}
-            title="ATS & Resume Intelligence"
-            desc="Audit your resume with a rule-based weighted scoring engine, visual section heatmap, and detailed keyword insights."
-            to="/resume-builder?ats=true"
+            title="Global ATS Resume Analyzer"
+            desc="Upload any PDF/DOCX resume or paste raw text to run a strict recruiter-grade parsing audit and generate a comprehensive diagnostics report."
+            to="/ats-analyzer"
             accent="#00F5D4"
-            cta="Analyze Resume"
+            cta="Launch Analyzer"
           />
           <ActionCard
             icon={<Zap size={22} />}

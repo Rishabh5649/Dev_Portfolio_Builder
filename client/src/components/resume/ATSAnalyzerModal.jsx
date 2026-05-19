@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   X, Zap, CheckCircle2, AlertTriangle, Sparkles,
   Award, ShieldCheck, Terminal, Compass, Eye, ShieldAlert,
-  Info, TrendingDown
+  Info, TrendingDown, Printer, RefreshCw
 } from 'lucide-react';
 
 export default function ATSAnalyzerModal({
@@ -14,11 +14,25 @@ export default function ATSAnalyzerModal({
 }) {
   if (!open) return null;
 
-  // ── 1. DETERMINISTIC ATS PENALTY & METRIC ENGINE ────────────────────────────
-  const analysis = useMemo(() => {
-    if (!resume) return null;
+  // ── 1. TYPING PERFORMANCE DEBOUNCE (400ms) ─────────────────────────────────
+  const [debouncedResume, setDebouncedResume] = useState(resume);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-    const r = resume;
+  useEffect(() => {
+    setIsUpdating(true);
+    const handler = setTimeout(() => {
+      setDebouncedResume(resume);
+      setIsUpdating(false);
+    }, 400);
+
+    return () => clearTimeout(handler);
+  }, [resume]);
+
+  // ── 2. STABLE DETERMINISTIC RECRUITER CALIBRATED SCORING ENGINE ────────────
+  const analysis = useMemo(() => {
+    if (!debouncedResume) return null;
+
+    const r = debouncedResume;
     const header = r.header || {};
     const summary = r.summary || '';
     const experience = (r.experience || []).filter(e => !e.hidden);
@@ -130,7 +144,7 @@ export default function ATSAnalyzerModal({
     });
     const duplicateSkills = Object.keys(skillCounts).filter(k => skillCounts[k] > 1);
     if (duplicateSkills.length > 0) {
-      const penalty = duplicateSkills.length * 5;
+      const penalty = duplicateSkills.length * 10;
       skillsScore -= penalty;
       skillsDeductions.push({ label: `Duplicate skill keywords redundancy (${duplicateSkills.length})`, penalty: -penalty });
     }
@@ -183,7 +197,7 @@ export default function ATSAnalyzerModal({
     if (totalBullets > 0) {
       const actionRatio = actionVerbCount / totalBullets;
       if (actionRatio < 0.8) {
-        const penalty = Math.round((1 - actionRatio) * 30);
+        const penalty = Math.round((0.8 - actionRatio) * 60);
         impactScore -= penalty;
         impactDeductions.push({ label: `Non-action leading words ratio (${Math.round((1 - actionRatio) * 100)}%)`, penalty: -penalty });
       }
@@ -197,7 +211,7 @@ export default function ATSAnalyzerModal({
     verbList.forEach(v => { verbCounts[v] = (verbCounts[v] || 0) + 1; });
     const repetitiveVerbs = Object.keys(verbCounts).filter(k => verbCounts[k] > 1);
     if (repetitiveVerbs.length > 0) {
-      const penalty = repetitiveVerbs.length * 8;
+      const penalty = repetitiveVerbs.length * 10;
       impactScore -= penalty;
       impactDeductions.push({ label: `Repetitive leading verbs: "${repetitiveVerbs.join(', ')}"`, penalty: -penalty });
     }
@@ -208,30 +222,40 @@ export default function ATSAnalyzerModal({
     const contentDeductions = [];
     let quantifiedCount = 0;
     let technicalDepthCount = 0;
+    let vagueWordCount = 0;
 
     const quantPattern = /\b\d+(?:[\d,\.]*)*(?:%|\+|\s*(?:percent|x|k|M|m|B|b|million|billion|dollars|s|ms|fps))\b|\b\d+\b/;
     const techPattern = /caching|redis|optimization|api|database|pipeline|latency|throughput|architecture|refactored|migration|cloud|microservices|docker|concurrency|concurrent|scalability|scalable|pytorch|tensorflow|cnn|lstm|mern/;
+    const vaguePattern = /\b(helped|worked\s+on|assisted|handled|responsible\s+for|tasks\s+included|participated|contributed)\b/i;
 
     bulletsToCheck.forEach(b => {
       if (quantPattern.test(b)) quantifiedCount++;
       if (techPattern.test(b.toLowerCase())) technicalDepthCount++;
+      if (vaguePattern.test(b.toLowerCase())) vagueWordCount++;
     });
 
     if (totalBullets > 0) {
       const quantRatio = quantifiedCount / totalBullets;
       if (quantRatio < 0.4) {
-        const penalty = Math.round((0.4 - quantRatio) * 60);
+        const penalty = 35;
         contentScore -= penalty;
         contentDeductions.push({ label: `Low quantified achievements ratio (${Math.round(quantRatio * 100)}%)`, penalty: -penalty });
       }
     } else {
-      contentScore -= 40;
-      contentDeductions.push({ label: 'No statements to quantify', penalty: -40 });
+      contentScore -= 50;
+      contentDeductions.push({ label: 'No statements to quantify', penalty: -50 });
+    }
+
+    if (vagueWordCount > 0) {
+      const penalty = Math.min(30, vagueWordCount * 10);
+      contentScore -= penalty;
+      contentDeductions.push({ label: `Passive/Vague phrasing warnings (${vagueWordCount})`, penalty: -penalty });
     }
 
     if (technicalDepthCount < 4) {
-      contentScore -= 20;
-      contentDeductions.push({ label: 'Lack of tech depth / system descriptors', penalty: -20 });
+      const penalty = 25;
+      contentScore -= penalty;
+      contentDeductions.push({ label: 'Lack of tech depth / system descriptors', penalty: -25 });
     }
     contentScore = Math.max(0, contentScore);
 
@@ -247,12 +271,12 @@ export default function ATSAnalyzerModal({
     });
 
     if (excessivelyLongCount > 0) {
-      const penalty = excessivelyLongCount * 10;
+      const penalty = excessivelyLongCount * 12;
       readabilityScore -= penalty;
       readabilityDeductions.push({ label: `Verbose bullets > 200 characters (${excessivelyLongCount})`, penalty: -penalty });
     }
     if (underdocumentedCount > 0) {
-      const penalty = underdocumentedCount * 8;
+      const penalty = underdocumentedCount * 10;
       readabilityScore -= penalty;
       readabilityDeductions.push({ label: `Under-documented bullets < 40 chars (${underdocumentedCount})`, penalty: -penalty });
     }
@@ -279,14 +303,14 @@ export default function ATSAnalyzerModal({
       formattingScore -= 15;
       formattingDeductions.push({ label: `Dense section gaps (${spacing.sectionGap}px < 8px)`, penalty: -15 });
     }
-    if (fontOverride && fontOverride < 9.5) {
+    if (fontOverride && fontOverride < 10) {
       formattingScore -= 15;
-      formattingDeductions.push({ label: `Illegible tiny font override (${fontOverride}pt)`, penalty: -15 });
+      formattingDeductions.push({ label: `Illegible font override (${fontOverride}pt < 10pt)`, penalty: -15 });
     }
     formattingScore = Math.max(0, formattingScore);
 
     // ── FINAL COMBINED WEIGHTED SCORE ──
-    const finalScore = Math.round(
+    const primaryScore = Math.round(
       (skillsScore * 0.20) +
       (formattingScore * 0.20) +
       (contentScore * 0.20) +
@@ -295,6 +319,35 @@ export default function ATSAnalyzerModal({
       (completenessScore * 0.10) +
       (presenceScore * 0.05)
     );
+
+    // ── STRICT SCALING NORMALIZATION CAPS (RECRUITER GRADE BRACKETS) ──
+    let finalScore = primaryScore;
+
+    if (quantifiedCount === 0) {
+      finalScore = Math.min(finalScore, 52); // Maximum cap for unquantified text
+    } else if (quantifiedCount < 3) {
+      finalScore = Math.round(finalScore * 0.85); // 15% reduction
+    }
+
+    if (technicalDepthCount === 0) {
+      finalScore = Math.min(finalScore, 55); // Maximum cap for lack of tech keywords
+    } else if (technicalDepthCount < 3) {
+      finalScore = Math.round(finalScore * 0.90); // 10% reduction
+    }
+
+    if (totalBullets < 3) {
+      finalScore = Math.min(finalScore, 48); // Maximum cap for extreme brevity
+    } else if (totalBullets < 6) {
+      finalScore = Math.round(finalScore * 0.88); // 12% reduction
+    }
+
+    if (vagueWordCount > 2) {
+      finalScore = Math.round(finalScore * 0.92); // 8% reduction
+    }
+
+    // Standardized recruiter normalization bounds:
+    // Weak: 40-60, Average: 55-70, Strong: 68-80, Exceptional: 80-88, Elite: 88-95
+    finalScore = Math.max(35, Math.min(95, finalScore));
 
     // BREADCRUMBS READINESS
     const techDepth = Math.min(100, Math.round((technicalDepthCount / 5) * 100));
@@ -337,13 +390,14 @@ export default function ATSAnalyzerModal({
       contentDeductions,
       readabilityDeductions,
       formattingDeductions,
-      isSingleColumn
+      isSingleColumn,
+      vagueWordCount
     };
-  }, [resume]);
+  }, [debouncedResume]);
 
-  // ── 2. CONFIDENCE SYSTEM ──
+  // ── 3. CONFIDENCE SYSTEM ──
   const confidenceData = useMemo(() => {
-    if (!resume) return { rating: 'Limited Analysis', score: 20, color: '#D9534F' };
+    if (!resume) return { rating: 'Limited Analysis', score: 20, color: 'var(--danger)' };
     
     let checklist = 0;
     const allText = (resume.summary || '') + 
@@ -362,7 +416,7 @@ export default function ATSAnalyzerModal({
       return {
         rating: 'High Confidence',
         score: 95,
-        color: '#2CA58D',
+        color: 'var(--success)',
         desc: 'Comprehensive content volume ensures standard recruiting audit accuracy.'
       };
     }
@@ -370,48 +424,48 @@ export default function ATSAnalyzerModal({
       return {
         rating: 'Medium Confidence',
         score: 65,
-        color: '#E2B93B',
-        desc: 'Moderate details. Fill in additional experience bullets and system keywords to unlock 100% confidence.'
+        color: 'var(--warning)',
+        desc: 'Moderate details. Fill in additional experience bullets and keywords to unlock 100% confidence.'
       };
     }
     return {
       rating: 'Limited Analysis',
       score: 30,
-      color: '#D9534F',
-      desc: 'Sparse profile details. Populate descriptions and list professional tools for accurate results.'
+      color: 'var(--danger)',
+      desc: 'Sparse profile details. Populate experience and list tools for accurate results.'
     };
   }, [resume]);
 
-  // ── 3. RESUME SPACING DENSITY ANALYZER ──
+  // ── 4. RESUME SPACING DENSITY ANALYZER ──
   const densityData = useMemo(() => {
-    if (!resume) return { rating: 'Balanced', color: '#2CA58D', text: 'Optimal layout density.' };
+    if (!resume) return { rating: 'Balanced', color: 'var(--success)', text: 'Optimal layout density.' };
     const spacing = resume.spacing || {};
     const padding = spacing.pagePadding ?? 10;
     const gap = spacing.sectionGap ?? 10;
     const font = resume.fontSizeOverride ?? 11;
     
-    if (padding < 8 || gap < 8 || font < 9.5) {
+    if (padding < 8 || gap < 8 || font < 10) {
       return {
         rating: 'Overcrowded',
-        color: '#D9534F',
-        text: 'Layout density is overcrowded. Try using the "Auto Fit" utility in the Spacing panel to redistribute borders and establish balanced page counts.'
+        color: 'var(--danger)',
+        text: 'Layout density is overcrowded. Try using the "Auto Fit" spacing tool to establish balanced page counts.'
       };
     }
     if (padding > 15 && gap > 15) {
       return {
         rating: 'Loose Density',
-        color: '#E2B93B',
+        color: 'var(--warning)',
         text: 'Layout is under-utilized. Reduce gaps or use "Auto Fit" to compact vertical elements into a crisp presentation.'
       };
     }
     return {
       rating: 'Balanced',
-      color: '#2CA58D',
+      color: 'var(--success)',
       text: 'Layout and typography sizing match standard scanner margins and human readability guidelines.'
     };
   }, [resume]);
 
-  // ── 4. MAJOR ATS RISKS CARD ──
+  // ── 5. MAJOR ATS RISKS CARD ──
   const majorRisks = useMemo(() => {
     if (!analysis) return [];
     const risks = [];
@@ -428,14 +482,14 @@ export default function ATSAnalyzerModal({
         title: 'Lack of Quantified Achievements',
         desc: 'Hiring managers scan for concrete numeric values. Bullet points without metrics fail to prove direct scope.',
         severity: 'high',
-        deduction: -20
+        deduction: -35
       });
     }
     const spacing = resume.spacing || {};
     if (spacing.pagePadding && spacing.pagePadding < 8) {
       risks.push({
         title: 'Overcrowded Layout Margins',
-        desc: `Cramped borders (${spacing.pagePadding}mm) impede scanners and degrade readability.`,
+        desc: `Cramped borders (${spacing.pagePadding}mm) impede scanners and degrade scannability.`,
         severity: 'medium',
         deduction: -15
       });
@@ -445,7 +499,7 @@ export default function ATSAnalyzerModal({
         title: 'Weak Technical Specificity',
         desc: 'Missing strong engineering concepts reduces matching odds in targeted pipeline software.',
         severity: 'medium',
-        deduction: -15
+        deduction: -25
       });
     }
 
@@ -460,7 +514,7 @@ export default function ATSAnalyzerModal({
     return risks.slice(0, 3);
   }, [analysis, resume]);
 
-  // ── 5. CLICK DETAILED RECRUITER AUDIT DRAWER ──
+  // ── 6. CLICK DETAILED RECRUITER AUDIT DRAWER ──
   const drawerInfo = useMemo(() => {
     if (!activeCategory || !analysis) return null;
     const isCategory = ['formatting', 'content', 'skills', 'impact', 'readability'].includes(activeCategory);
@@ -479,7 +533,7 @@ export default function ATSAnalyzerModal({
             suggestions: [
               'Maintain page padding above 8mm for standard scanner scaling.',
               'Set section gaps between 8px and 12px to establish explicit borders.',
-              'Ensure font size is at least 9.5pt to keep text scannable on standard recruiter dashboards.'
+              'Ensure font size is at least 10pt to keep text scannable on standard recruiter dashboards.'
             ],
             deductions: analysis.formattingDeductions
           };
@@ -530,7 +584,7 @@ export default function ATSAnalyzerModal({
             title: 'Readability & Scannability',
             score: analysis.readabilityScore,
             whyMatters: 'Extremely long bullet points (>200 characters) are skipped by reviewers, while short entries (<40 characters) fail to express complete achievements.',
-            strengths: analysis.readabilityScore >= 80 ? ['Excellent visual scannability across experience blocks.'] : [],
+            strengths: analysis.readabilityScore >= 80 ? ['Excellent scannability across experience blocks.'] : [],
             weaknesses: analysis.readabilityScore < 80 ? ['Contains overly wordy summary or experience bullet blocks.'] : [],
             suggestions: [
               'Break up bullet items longer than 200 characters into separate single bullet lines.',
@@ -628,42 +682,46 @@ export default function ATSAnalyzerModal({
   }, [activeCategory, analysis, resume]);
 
   const getScoreColor = (score) => {
-    if (score >= 80) return '#2CA58D'; // Forest green
-    if (score >= 50) return '#E2B93B'; // Warm amber gold
-    return '#D9534F'; // Red
+    if (score >= 80) return 'var(--success)';
+    if (score >= 60) return 'var(--warning)';
+    return 'var(--danger)';
   };
 
   const getHeatmapColor = (status) => {
-    if (status === 'strong') return '#2CA58D';
-    if (status === 'average') return '#E2B93B';
-    return '#D9534F';
+    if (status === 'strong') return 'var(--success)';
+    if (status === 'average') return 'var(--warning)';
+    return 'var(--danger)';
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   if (!analysis) return null;
 
   return (
-    <div style={{
+    <div className="rb-modal-overlay" style={{
       position: 'fixed',
       inset: 0,
-      background: 'rgba(11, 15, 25, 0.72)',
-      backdropFilter: 'blur(12px)',
-      WebkitBackdropFilter: 'blur(12px)',
+      background: 'rgba(5, 5, 10, 0.85)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
       zIndex: 2000,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       padding: '24px',
-      color: '#E8EBF4',
-      fontFamily: "'Inter', system-ui, sans-serif"
+      color: 'var(--text-primary)',
+      fontFamily: "var(--font-body)"
     }}>
       {/* Resizable Modal Card holding split layout */}
       <div style={{
-        background: '#0B0F19',
-        border: '1px solid #1E2535',
-        borderRadius: '20px',
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)',
         width: '100%',
         maxWidth: activeCategory ? '1200px' : '980px',
-        height: '88vh',
+        height: '86vh',
         display: 'flex',
         flexDirection: 'column',
         boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
@@ -672,39 +730,67 @@ export default function ATSAnalyzerModal({
       }}>
         {/* Header Bar */}
         <div style={{
-          padding: '20px 28px',
-          borderBottom: '1px solid #1E2535',
+          padding: '16px 28px',
+          borderBottom: '1px solid var(--border)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          background: '#0F1320'
+          background: 'var(--bg-base)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Sparkles size={20} style={{ color: '#2CA58D' }} />
-            <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0, letterSpacing: '-0.02em', color: '#FFFFFF' }}>
+            <Sparkles size={18} style={{ color: 'var(--accent)' }} />
+            <h2 style={{ fontSize: '16px', fontWeight: 800, margin: 0, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
               Resume Recruiter Audit & ATS Diagnostics
             </h2>
+            {isUpdating && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--accent)' }}>
+                <RefreshCw size={12} className="animate-spin" /> Recalculating...
+              </div>
+            )}
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: 'none',
-              borderRadius: '50%',
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#8892A4',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={e => { e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
-            onMouseLeave={e => { e.currentTarget.style.color = '#8892A4'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
-          >
-            <X size={16} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              onClick={handlePrint}
+              style={{
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border)',
+                borderRadius: '6px',
+                padding: '6px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                color: 'var(--text-primary)',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+            >
+              <Printer size={14} /> Export Report
+            </button>
+            <button
+              onClick={onClose}
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: 'none',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         {/* Double-column container */}
@@ -714,21 +800,21 @@ export default function ATSAnalyzerModal({
           <div style={{
             flex: activeCategory ? '0 0 60%' : '0 0 100%',
             overflowY: 'auto',
-            padding: '28px',
-            borderRight: activeCategory ? '1px solid #1E2535' : 'none',
+            padding: '24px',
+            borderRight: activeCategory ? '1px solid var(--border)' : 'none',
             transition: 'all 0.3s ease-in-out',
             boxSizing: 'border-box'
           }}>
             
             {/* Top Score Circular Section */}
-            <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', marginBottom: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '20px', marginBottom: '20px' }}>
               
               {/* Circular Score card */}
               <div style={{
-                background: '#0F1320',
-                border: '1px solid #1E2535',
-                borderRadius: '16px',
-                padding: '24px',
+                background: 'var(--bg-base)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                padding: '20px',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -736,23 +822,23 @@ export default function ATSAnalyzerModal({
                 textAlign: 'center'
               }}>
                 <div style={{
-                  width: '130px',
-                  height: '130px',
+                  width: '120px',
+                  height: '120px',
                   borderRadius: '50%',
-                  border: `8px solid #1E2535`,
+                  border: `8px solid var(--border)`,
                   borderTopColor: getScoreColor(analysis.finalScore),
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  marginBottom: '16px',
+                  marginBottom: '12px',
                   transform: 'rotate(-45deg)'
                 }}>
                   <div style={{ transform: 'rotate(45deg)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <span style={{ fontSize: '38px', fontWeight: 900, color: '#FFFFFF', lineHeight: 1 }}>
+                    <span style={{ fontSize: '34px', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>
                       {analysis.finalScore}
                     </span>
-                    <span style={{ fontSize: '11px', color: '#8892A4', fontWeight: 600, marginTop: '2px' }}>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600, marginTop: '2px' }}>
                       / 100
                     </span>
                   </div>
@@ -762,47 +848,47 @@ export default function ATSAnalyzerModal({
                   background: `${getScoreColor(analysis.finalScore)}15`,
                   border: `1px solid ${getScoreColor(analysis.finalScore)}30`,
                   color: getScoreColor(analysis.finalScore),
-                  padding: '5px 14px',
+                  padding: '4px 12px',
                   borderRadius: '20px',
-                  fontSize: '11px',
+                  fontSize: '10px',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
-                  marginBottom: '12px'
+                  marginBottom: '10px'
                 }}>
-                  {analysis.finalScore >= 80 ? 'Enterprise Grade' : analysis.finalScore >= 50 ? 'Strong Match' : 'Needs Optimization'}
+                  {analysis.finalScore >= 80 ? 'Exceptional Grade' : analysis.finalScore >= 68 ? 'Strong Match' : analysis.finalScore >= 55 ? 'Average Match' : 'Needs Optimization'}
                 </div>
 
                 <div style={{
                   fontSize: '11px',
-                  color: '#8892A4',
+                  color: 'var(--text-secondary)',
                   lineHeight: 1.4,
-                  borderTop: '1px solid #1E2535',
-                  paddingTop: '10px',
+                  borderTop: '1px solid var(--border)',
+                  paddingTop: '8px',
                   width: '100%'
                 }}>
-                  This audit reflects spacing consistency balanced with keyword metrics. Select a card to inspect deductions.
+                  Calibrated recruiter-style score model. Hover/Select categories to highlight sheet spacing.
                 </div>
               </div>
 
               {/* Category progress bars */}
               <div style={{
-                background: '#0F1320',
-                border: '1px solid #1E2535',
-                borderRadius: '16px',
-                padding: '24px',
+                background: 'var(--bg-base)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                padding: '20px',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                  <h3 style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#8892A4', margin: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <h3 style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', margin: 0 }}>
                     Category Breakdown
                   </h3>
-                  <span style={{ fontSize: '11px', color: '#8892A4', fontStyle: 'italic' }}>Click bars to inspect</span>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontStyle: 'italic' }}>Hover to inspect</span>
                 </div>
                 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   {[
                     { label: 'Formatting & Layout Density', val: analysis.formattingScore, key: 'formatting' },
                     { label: 'Content Specificity & Metrics', val: analysis.contentScore, key: 'content' },
@@ -813,22 +899,22 @@ export default function ATSAnalyzerModal({
                     <div
                       key={idx}
                       onClick={() => setActiveCategory(activeCategory === item.key ? null : item.key)}
+                      onMouseEnter={() => setActiveCategory(item.key)}
+                      onMouseLeave={() => { if (activeCategory === item.key) setActiveCategory(null); }}
                       style={{
                         cursor: 'pointer',
-                        padding: '6px 8px',
-                        borderRadius: '8px',
-                        background: activeCategory === item.key ? '#1E2535' : 'transparent',
+                        padding: '4px 6px',
+                        borderRadius: '6px',
+                        background: activeCategory === item.key ? 'var(--bg-elevated)' : 'transparent',
                         transition: 'all 0.2s',
-                        border: activeCategory === item.key ? '1px solid #2CA58D' : '1px solid transparent'
+                        border: activeCategory === item.key ? '1px solid var(--accent)' : '1px solid transparent'
                       }}
-                      onMouseEnter={e => { if (activeCategory !== item.key) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
-                      onMouseLeave={e => { if (activeCategory !== item.key) e.currentTarget.style.background = 'transparent'; }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
-                        <span style={{ color: '#E8EBF4', fontWeight: 600 }}>{item.label}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '3px' }}>
+                        <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{item.label}</span>
                         <span style={{ color: getScoreColor(item.val), fontWeight: 700 }}>{item.val}%</span>
                       </div>
-                      <div style={{ height: '5px', background: '#1E2535', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div style={{ height: '4px', background: 'var(--border)', borderRadius: '4px', overflow: 'hidden' }}>
                         <div style={{ height: '100%', background: getScoreColor(item.val), width: `${item.val}%`, borderRadius: '4px' }} />
                       </div>
                     </div>
@@ -836,54 +922,54 @@ export default function ATSAnalyzerModal({
                 </div>
 
                 {/* Specializations list */}
-                <div style={{ marginTop: '12px', borderTop: '1px solid #1E2535', paddingTop: '10px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: '#8892A4' }}>Specializations:</span>
+                <div style={{ marginTop: '8px', borderTop: '1px solid var(--border)', paddingTop: '8px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Specialist tags:</span>
                   {analysis.specializations.length > 0 ? (
                     analysis.specializations.map((tag, i) => (
-                      <span key={i} style={{ background: 'rgba(44,165,141,0.08)', border: '1px solid rgba(44,165,141,0.3)', color: '#2CA58D', padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: 600 }}>
+                      <span key={i} style={{ background: 'var(--accent-dim)', border: '1px solid rgba(108,99,255,0.3)', color: 'var(--accent)', padding: '2px 6px', borderRadius: '12px', fontSize: '9px', fontWeight: 600 }}>
                         {tag}
                       </span>
                     ))
                   ) : (
-                    <span style={{ fontSize: '11px', color: '#8892A4', fontStyle: 'italic' }}>None detected</span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontStyle: 'italic' }}>None parsed</span>
                   )}
                 </div>
               </div>
             </div>
 
             {/* Confidence & Spacing Density Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
               
               {/* Confidence System Card */}
               <div style={{
-                background: '#0F1320',
-                border: '1px solid #1E2535',
-                borderRadius: '12px',
-                padding: '16px',
+                background: 'var(--bg-base)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                padding: '14px',
                 display: 'flex',
                 alignItems: 'flex-start',
-                gap: '12px'
+                gap: '10px'
               }}>
                 <div style={{
                   background: `${confidenceData.color}15`,
                   border: `1px solid ${confidenceData.color}35`,
                   color: confidenceData.color,
-                  padding: '8px',
-                  borderRadius: '8px',
+                  padding: '6px',
+                  borderRadius: '6px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
-                  <ShieldCheck size={20} />
+                  <ShieldCheck size={18} />
                 </div>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <h4 style={{ fontSize: '13px', fontWeight: 700, margin: 0, color: '#FFFFFF' }}>Audit Confidence</h4>
-                    <span style={{ fontSize: '10px', background: `${confidenceData.color}20`, color: confidenceData.color, padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                    <h4 style={{ fontSize: '12px', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Audit Confidence</h4>
+                    <span style={{ fontSize: '9px', background: `${confidenceData.color}20`, color: confidenceData.color, padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
                       {confidenceData.rating}
                     </span>
                   </div>
-                  <p style={{ fontSize: '11px', color: '#8892A4', margin: 0, lineHeight: 1.4 }}>
+                  <p style={{ fontSize: '10px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.3 }}>
                     {confidenceData.desc}
                   </p>
                 </div>
@@ -891,34 +977,34 @@ export default function ATSAnalyzerModal({
 
               {/* Spacing Density Card */}
               <div style={{
-                background: '#0F1320',
-                border: '1px solid #1E2535',
-                borderRadius: '12px',
-                padding: '16px',
+                background: 'var(--bg-base)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                padding: '14px',
                 display: 'flex',
                 alignItems: 'flex-start',
-                gap: '12px'
+                gap: '10px'
               }}>
                 <div style={{
                   background: `${densityData.color}15`,
                   border: `1px solid ${densityData.color}35`,
                   color: densityData.color,
-                  padding: '8px',
-                  borderRadius: '8px',
+                  padding: '6px',
+                  borderRadius: '6px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
-                  <Info size={20} />
+                  <Info size={18} />
                 </div>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <h4 style={{ fontSize: '13px', fontWeight: 700, margin: 0, color: '#FFFFFF' }}>Layout Density</h4>
-                    <span style={{ fontSize: '10px', background: `${densityData.color}20`, color: densityData.color, padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                    <h4 style={{ fontSize: '12px', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Layout Density</h4>
+                    <span style={{ fontSize: '9px', background: `${densityData.color}20`, color: densityData.color, padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
                       {densityData.rating}
                     </span>
                   </div>
-                  <p style={{ fontSize: '11px', color: '#8892A4', margin: 0, lineHeight: 1.4 }}>
+                  <p style={{ fontSize: '10px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.3 }}>
                     {densityData.text}
                   </p>
                 </div>
@@ -926,88 +1012,68 @@ export default function ATSAnalyzerModal({
 
             </div>
 
-            {/* Career Readiness & Scale metrics clickable */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '24px' }}>
-              {[
-                { label: 'Internship Ready', val: analysis.internshipReadiness, icon: <Compass size={14} />, color: '#00D4FF', key: 'internship' },
-                { label: 'Startup Ready', val: analysis.startupReadiness, icon: <Zap size={14} />, color: '#E2B93B', key: 'startup' },
-                { label: 'Big-Tech Ready', val: analysis.bigTechReadiness, icon: <Award size={14} />, color: '#FF6CAB', key: 'big_tech' },
-                { label: 'Technical Depth', val: analysis.techDepth, icon: <Terminal size={14} />, color: '#2CA58D', key: 'tech_depth' }
-              ].map((card, i) => (
-                <div
-                  key={i}
-                  onClick={() => setActiveCategory(activeCategory === card.key ? null : card.key)}
-                  style={{
-                    background: activeCategory === card.key ? '#1E2535' : '#0F1320',
-                    border: activeCategory === card.key ? `1px solid ${card.color}` : '1px solid #1E2535',
-                    borderRadius: '12px',
-                    padding: '14px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={e => { if (activeCategory !== card.key) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
-                  onMouseLeave={e => { if (activeCategory !== card.key) e.currentTarget.style.background = '#0F1320'; }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#8892A4', fontSize: '11px', fontWeight: 600 }}>
-                    <span style={{ color: card.color }}>{card.icon}</span>
-                    {card.label}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px', marginTop: '8px' }}>
-                    <span style={{ fontSize: '24px', fontWeight: 900, color: '#FFFFFF' }}>{card.val}</span>
-                    <span style={{ fontSize: '11px', color: '#8892A4' }}>%</span>
-                  </div>
-                  <div style={{ height: '3px', background: '#1E2535', borderRadius: '2px', overflow: 'hidden', marginTop: '8px' }}>
-                    <div style={{ height: '100%', background: card.color, width: `${card.val}%` }} />
-                  </div>
-                </div>
-              ))}
+            {/* Analysis Limitations transparent notice */}
+            <div style={{
+              background: 'var(--bg-base)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-md)',
+              padding: '12px 16px',
+              marginBottom: '20px',
+              fontSize: '11px',
+              color: 'var(--text-secondary)',
+              lineHeight: 1.4,
+              display: 'flex',
+              gap: '10px',
+              alignItems: 'flex-start'
+            }}>
+              <Info size={16} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <strong style={{ color: 'var(--text-primary)' }}>Analysis Limitations:</strong> The ATS scoring system is advisory, heuristic-based guidelines mirroring standard modern recruiter checks. Resume parser results vary between enterprise employers; scores do not guarantee specific interview or employment outcomes.
+              </div>
             </div>
 
             {/* Major ATS Risks List Card */}
             <div style={{
-              background: '#0F1320',
-              border: '1px solid #1E2535',
-              borderRadius: '16px',
-              padding: '20px',
-              marginBottom: '24px'
+              background: 'var(--bg-base)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-md)',
+              padding: '16px',
+              marginBottom: '20px'
             }}>
-              <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#FFFFFF', marginBottom: '14px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                <ShieldAlert size={16} style={{ color: '#D9534F' }} /> Critical Parser Vulnerabilities
+              <h3 style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <ShieldAlert size={14} style={{ color: 'var(--danger)' }} /> Critical Parser Vulnerabilities
               </h3>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {majorRisks.map((risk, i) => (
                   <div key={i} style={{
-                    background: 'rgba(217, 83, 79, 0.05)',
-                    border: '1px solid rgba(217, 83, 79, 0.15)',
+                    background: 'var(--danger-dim)',
+                    border: '1px solid rgba(255,77,109,0.15)',
                     borderRadius: '8px',
-                    padding: '10px 14px',
+                    padding: '8px 12px',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center'
                   }}>
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       <span style={{
-                        background: 'rgba(217, 83, 79, 0.15)',
-                        color: '#D9534F',
-                        fontSize: '9px',
+                        background: 'rgba(255,77,109,0.15)',
+                        color: 'var(--danger)',
+                        fontSize: '8px',
                         fontWeight: 800,
-                        padding: '2px 5px',
-                        borderRadius: '4px',
+                        padding: '1px 4px',
+                        borderRadius: '3px',
                         textTransform: 'uppercase'
                       }}>
                         {risk.severity} Risk
                       </span>
                       <div>
-                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#E8EBF4', marginBottom: '2px' }}>{risk.title}</div>
-                        <div style={{ fontSize: '11px', color: '#8892A4', lineHeight: 1.3 }}>{risk.desc}</div>
+                        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '1px' }}>{risk.title}</div>
+                        <div style={{ fontSize: '10px', color: 'var(--text-secondary)', lineHeight: 1.3 }}>{risk.desc}</div>
                       </div>
                     </div>
                     {risk.deduction < 0 && (
-                      <span style={{ fontSize: '11px', color: '#D9534F', fontWeight: 700, whiteSpace: 'nowrap', marginLeft: '12px' }}>
+                      <span style={{ fontSize: '10px', color: 'var(--danger)', fontWeight: 700, whiteSpace: 'nowrap', marginLeft: '8px' }}>
                         {risk.deduction} PTS
                       </span>
                     )}
@@ -1018,19 +1084,19 @@ export default function ATSAnalyzerModal({
 
             {/* Visually Clickable Strength Map */}
             <div style={{
-              background: '#0F1320',
-              border: '1px solid #1E2535',
-              borderRadius: '16px',
-              padding: '20px'
+              background: 'var(--bg-base)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-md)',
+              padding: '16px'
             }}>
-              <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#FFFFFF', marginBottom: '4px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                <Eye size={16} style={{ color: '#2CA58D' }} /> Visual Section Strength Map
+              <h3 style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '3px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <Eye size={14} style={{ color: 'var(--accent)' }} /> Visual Section Strength Map
               </h3>
-              <p style={{ fontSize: '11px', color: '#8892A4', marginBottom: '14px', margin: 0 }}>
-                Audits individual resume segments. Select a card to inspect section strengths and suggestions.
+              <p style={{ fontSize: '10px', color: 'var(--text-secondary)', marginBottom: '12px', margin: 0 }}>
+                Audits individual resume segments. Hover segments to highlight sheet content; click to view drawer checklist.
               </p>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                 {[
                   { label: 'Header Presence', key: 'header' },
                   { label: 'Summary Profile', key: 'summary' },
@@ -1045,28 +1111,28 @@ export default function ATSAnalyzerModal({
                     <div
                       key={i}
                       onClick={() => setActiveCategory(activeCategory === sec.key ? null : sec.key)}
+                      onMouseEnter={() => setActiveCategory(sec.key)}
+                      onMouseLeave={() => { if (activeCategory === sec.key) setActiveCategory(null); }}
                       style={{
-                        background: isActive ? '#1E2535' : '#0B0F19',
-                        border: `1px solid ${isActive ? '#2CA58D' : getHeatmapColor(strength) + '25'}`,
-                        borderLeft: `4px solid ${getHeatmapColor(strength)}`,
-                        padding: '12px',
-                        borderRadius: '8px',
+                        background: isActive ? 'var(--bg-elevated)' : 'var(--bg-surface)',
+                        border: `1px solid ${isActive ? 'var(--accent)' : getHeatmapColor(strength) + '25'}`,
+                        borderLeft: `3px solid ${getHeatmapColor(strength)}`,
+                        padding: '10px',
+                        borderRadius: '6px',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
                         cursor: 'pointer',
-                        transition: 'all 0.2s'
+                        transition: 'all 0.15s'
                       }}
-                      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
-                      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = '#0B0F19'; }}
                     >
-                      <span style={{ fontSize: '11px', fontWeight: 600, color: '#E8EBF4' }}>{sec.label}</span>
+                      <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-primary)' }}>{sec.label}</span>
                       <span style={{
-                        fontSize: '9px',
+                        fontSize: '8px',
                         fontWeight: 800,
                         textTransform: 'uppercase',
                         color: getHeatmapColor(strength),
-                        marginTop: '8px'
+                        marginTop: '6px'
                       }}>
                         {strength === 'strong' ? '✓ Excellent' : strength === 'average' ? '⚠ Standard' : '✗ Weak'}
                       </span>
@@ -1083,17 +1149,18 @@ export default function ATSAnalyzerModal({
             <div style={{
               flex: '0 0 40%',
               overflowY: 'auto',
-              background: '#0F1320',
-              padding: '28px',
+              background: 'var(--bg-base)',
+              padding: '24px',
               display: 'flex',
               flexDirection: 'column',
               boxSizing: 'border-box',
-              animation: 'slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+              animation: 'slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+              borderLeft: '1px solid var(--border)'
             }}>
               
               {/* Drawer Title & Close */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
                   {drawerInfo.title}
                 </h3>
                 <button
@@ -1107,7 +1174,7 @@ export default function ATSAnalyzerModal({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#8892A4',
+                    color: 'var(--text-secondary)',
                     cursor: 'pointer'
                   }}
                 >
@@ -1117,61 +1184,61 @@ export default function ATSAnalyzerModal({
 
               {/* Score breakdown inside drawer */}
               <div style={{
-                background: '#0B0F19',
-                border: '1px solid #1E2535',
-                borderRadius: '12px',
-                padding: '16px',
-                marginBottom: '20px',
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                padding: '12px',
+                marginBottom: '16px',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center'
               }}>
-                <span style={{ fontSize: '12px', color: '#8892A4', fontWeight: 600 }}>Section Audit Rank</span>
-                <span style={{ fontSize: '20px', fontWeight: 900, color: getScoreColor(drawerInfo.score) }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>Section Audit Rank</span>
+                <span style={{ fontSize: '18px', fontWeight: 900, color: getScoreColor(drawerInfo.score) }}>
                   {drawerInfo.score}%
                 </span>
               </div>
 
               {/* Why This Matters recruiter annotation callout */}
               <div style={{
-                background: 'rgba(255,255,255,0.02)',
-                borderLeft: '3px solid #2CA58D',
+                background: 'var(--bg-elevated)',
+                borderLeft: '3px solid var(--accent)',
                 borderRadius: '4px',
-                padding: '12px 14px',
-                fontSize: '11px',
-                color: '#8892A4',
+                padding: '10px 12px',
+                fontSize: '10px',
+                color: 'var(--text-secondary)',
                 lineHeight: 1.4,
                 fontStyle: 'italic',
-                marginBottom: '20px'
+                marginBottom: '16px'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: '#2CA58D', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
-                  <Info size={12} /> Recruiter Insight
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '9px', color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                  <Info size={10} /> Recruiter Insight
                 </div>
                 "{drawerInfo.whyMatters}"
               </div>
 
               {/* Deductions breakdown list (Transparency!) */}
               {drawerInfo.deductions?.length > 0 && (
-                <div style={{ marginBottom: '20px' }}>
-                  <h4 style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#8892A4', margin: '0 0 10px 0' }}>
+                <div style={{ marginBottom: '16px' }}>
+                  <h4 style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', margin: '0 0 8px 0' }}>
                     Transparent Deductions
                   </h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {drawerInfo.deductions.map((ded, i) => (
                       <div key={i} style={{
-                        background: 'rgba(217, 83, 79, 0.04)',
-                        border: '1px dashed rgba(217, 83, 79, 0.25)',
+                        background: 'var(--danger-dim)',
+                        border: '1px dashed rgba(255,77,109,0.25)',
                         borderRadius: '6px',
-                        padding: '10px',
+                        padding: '8px',
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center'
                       }}>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <TrendingDown size={14} style={{ color: '#D9534F' }} />
-                          <span style={{ fontSize: '11px', color: '#E8EBF4' }}>{ded.label}</span>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                          <TrendingDown size={12} style={{ color: 'var(--danger)' }} />
+                          <span style={{ fontSize: '10px', color: 'var(--text-primary)' }}>{ded.label}</span>
                         </div>
-                        <span style={{ fontSize: '11px', color: '#D9534F', fontWeight: 700 }}>
+                        <span style={{ fontSize: '10px', color: 'var(--danger)', fontWeight: 700 }}>
                           {ded.penalty} PTS
                         </span>
                       </div>
@@ -1182,14 +1249,14 @@ export default function ATSAnalyzerModal({
 
               {/* Strengths checklist */}
               {drawerInfo.strengths?.length > 0 && (
-                <div style={{ marginBottom: '20px' }}>
-                  <h4 style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#8892A4', margin: '0 0 10px 0' }}>
+                <div style={{ marginBottom: '16px' }}>
+                  <h4 style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', margin: '0 0 8px 0' }}>
                     Observed Strengths
                   </h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     {drawerInfo.strengths.filter(Boolean).map((str, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '11px', color: '#E8EBF4', lineHeight: 1.4 }}>
-                        <span style={{ color: '#2CA58D', marginTop: '1px' }}>✓</span>
+                      <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '10px', color: 'var(--text-primary)', lineHeight: 1.3 }}>
+                        <span style={{ color: 'var(--success)', marginTop: '1px' }}>✓</span>
                         <span>{str}</span>
                       </div>
                     ))}
@@ -1200,21 +1267,21 @@ export default function ATSAnalyzerModal({
               {/* Actionable suggestions */}
               {drawerInfo.suggestions?.length > 0 && (
                 <div style={{ marginBottom: '10px' }}>
-                  <h4 style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#8892A4', margin: '0 0 10px 0' }}>
+                  <h4 style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', margin: '0 0 8px 0' }}>
                     Actionable Adjustments
                   </h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {drawerInfo.suggestions.filter(Boolean).map((sug, i) => (
                       <div key={i} style={{
-                        background: 'rgba(226,185,59,0.05)',
-                        border: '1px solid rgba(226,185,59,0.18)',
+                        background: 'var(--warning-dim)',
+                        border: '1px solid rgba(255,184,48,0.18)',
                         borderRadius: '6px',
-                        padding: '10px',
-                        fontSize: '11px',
-                        color: '#E8EBF4',
-                        lineHeight: 1.4
+                        padding: '8px 10px',
+                        fontSize: '10px',
+                        color: 'var(--text-primary)',
+                        lineHeight: 1.3
                       }}>
-                        <div style={{ fontWeight: 700, color: '#E2B93B', marginBottom: '2px' }}>Adjustment #{i+1}</div>
+                        <div style={{ fontWeight: 700, color: 'var(--warning)', marginBottom: '1px' }}>Adjustment #{i+1}</div>
                         {sug}
                       </div>
                     ))}
@@ -1229,42 +1296,131 @@ export default function ATSAnalyzerModal({
 
         {/* Footer Area */}
         <div style={{
-          padding: '16px 28px',
-          borderTop: '1px solid #1E2535',
-          background: '#0F1320',
+          padding: '12px 28px',
+          borderTop: '1px solid var(--border)',
+          background: 'var(--bg-base)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <div style={{ fontSize: '11px', color: '#8892A4', fontStyle: 'italic', fontWeight: 500 }}>
+          <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontStyle: 'italic', fontWeight: 500 }}>
             * The ATS system must prioritize explainability, consistency, and recruiter usefulness over artificially high scores.
           </div>
           <button
             onClick={onClose}
             style={{
-              padding: '8px 18px',
-              fontSize: '12px',
+              padding: '6px 16px',
+              fontSize: '11px',
               fontWeight: 700,
-              background: '#2CA58D',
+              background: 'var(--accent)',
               color: '#FFFFFF',
               border: 'none',
-              borderRadius: '6px',
+              borderRadius: '4px',
               cursor: 'pointer',
               transition: 'background 0.2s'
             }}
-            onMouseEnter={e => e.currentTarget.style.background = '#22816E'}
-            onMouseLeave={e => e.currentTarget.style.background = '#2CA58D'}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--accent-hover)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'var(--accent)'}
           >
             Acknowledge Suggestions
           </button>
         </div>
       </div>
+
+      {/* Hidden high-contrast printable audit document */}
+      <div className="printable-ats-report-content" style={{ display: 'none' }}>
+        <div style={{ fontFamily: 'sans-serif', padding: '40px', color: '#000', background: '#fff' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 10px 0', borderBottom: '2px solid #000', paddingBottom: '10px' }}>
+            Official Resume Recruiter Diagnostics Report
+          </h1>
+          <div style={{ display: 'flex', justifyContent: 'space-between', margin: '20px 0' }}>
+            <div>
+              <strong>Candidate Name:</strong> {resume.header?.name || 'Developer Candidate'}<br />
+              <strong>Audit Date:</strong> {new Date().toLocaleDateString()}<br />
+              <strong>Confidence level:</strong> {confidenceData.rating} ({confidenceData.score}%)
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '32px', fontWeight: 'bold' }}>{analysis.finalScore} / 100</div>
+              <strong>Overall Score Rank</strong>
+            </div>
+          </div>
+
+          <h2 style={{ fontSize: '16px', fontWeight: 'bold', margin: '20px 0 10px 0', borderBottom: '1px solid #ccc', paddingBottom: '4px' }}>
+            Category Metrics Breakdown
+          </h2>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
+            <thead>
+              <tr style={{ background: '#f5f5f5', textAlign: 'left' }}>
+                <th style={{ padding: '8px', border: '1px solid #ddd' }}>Diagnostic Category</th>
+                <th style={{ padding: '8px', border: '1px solid #ddd' }}>Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ padding: '8px', border: '1px solid #ddd' }}>Formatting & Margin spacing Boundaries</td>
+                <td style={{ padding: '8px', border: '1px solid #ddd', fontWeight: 'bold' }}>{analysis.formattingScore}%</td>
+              </tr>
+              <tr>
+                <td style={{ padding: '8px', border: '1px solid #ddd' }}>Content Specificity & Achievements</td>
+                <td style={{ padding: '8px', border: '1px solid #ddd', fontWeight: 'bold' }}>{analysis.contentScore}%</td>
+              </tr>
+              <tr>
+                <td style={{ padding: '8px', border: '1px solid #ddd' }}>Skills Diversity & Redundancy</td>
+                <td style={{ padding: '8px', border: '1px solid #ddd', fontWeight: 'bold' }}>{analysis.skillsScore}%</td>
+              </tr>
+              <tr>
+                <td style={{ padding: '8px', border: '1px solid #ddd' }}>Action Verbs & Contribution Style</td>
+                <td style={{ padding: '8px', border: '1px solid #ddd', fontWeight: 'bold' }}>{analysis.impactScore}%</td>
+              </tr>
+              <tr>
+                <td style={{ padding: '8px', border: '1px solid #ddd' }}>Readability & Character Limits</td>
+                <td style={{ padding: '8px', border: '1px solid #ddd', fontWeight: 'bold' }}>{analysis.readabilityScore}%</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h2 style={{ fontSize: '16px', fontWeight: 'bold', margin: '20px 0 10px 0', borderBottom: '1px solid #ccc', paddingBottom: '4px' }}>
+            Critical Recruiter Warnings & Deductions
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {majorRisks.map((risk, i) => (
+              <div key={i} style={{ padding: '8px 12px', borderLeft: '3px solid red', background: '#fff9f9', marginBottom: '8px' }}>
+                <strong>{risk.title} ({risk.severity} severity)</strong><br />
+                <span style={{ fontSize: '12px', color: '#555' }}>{risk.desc}</span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginTop: '40px', fontSize: '11px', color: '#777', textAlign: 'center', borderTop: '1px solid #ccc', paddingTop: '10px' }}>
+            * This report was generated automatically. The ATS audit operates on deterministic heuristic metrics to assist in interview optimization.
+          </div>
+        </div>
+      </div>
       
-      {/* CSS Animation for Drawer slide in */}
+      {/* CSS Animation & Custom Print stylesheet for seamless print flow */}
       <style>{`
         @keyframes slideIn {
           from { transform: translateX(100%); opacity: 0; }
           to { transform: translateX(0); opacity: 1; }
+        }
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          .printable-ats-report-content, .printable-ats-report-content * {
+            visibility: visible !important;
+          }
+          .printable-ats-report-content {
+            display: block !important;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100% !important;
+            height: auto !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            z-index: 99999 !important;
+          }
         }
       `}</style>
     </div>
