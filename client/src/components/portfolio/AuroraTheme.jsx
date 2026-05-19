@@ -9,6 +9,13 @@ export default function AuroraTheme({ portfolio }) {
   const profilePic = p?.profilePhoto || p?.profileImage;
   const initials = p?.fullName ? p.fullName.split(' ').map(n => n[0]).join('').toUpperCase() : 'JD';
 
+  const tc = portfolio?.themeCustomization || {};
+  const bgColor = tc.backgroundColor || '#FAFAF7';
+  const primaryColor = tc.primaryColor || '#1C1C1A';
+  const secondaryColor = tc.secondaryColor || '#70706B';
+  const accentColor1 = tc.accentColor1 || '#00C896';
+  const accentColor2 = tc.accentColor2 || '#C9A84C';
+
   const activeSections = [
     { id: 'hero', show: true },
     { id: 'about', show: true },
@@ -71,10 +78,11 @@ export default function AuroraTheme({ portfolio }) {
   return (
     <div
       ref={containerRef}
+      id="aurora-theme-container"
       style={{
         fontFamily: "'DM Sans', 'Inter', sans-serif",
-        background: '#FAFAF7',
-        color: '#0F0F0F',
+        background: bgColor,
+        color: primaryColor,
         minHeight: '100vh',
         overflow: 'hidden',
         position: 'relative',
@@ -89,20 +97,50 @@ export default function AuroraTheme({ portfolio }) {
           box-sizing: border-box;
         }
 
-        [data-animate] {
+        #aurora-theme-container [data-animate] {
           opacity: 0;
           transform: translateY(40px);
           transition: opacity 0.6s ease, transform 0.6s ease;
         }
 
-        a {
-          color: #00C896;
+        #aurora-theme-container a {
+          color: ${accentColor1};
           text-decoration: none;
           transition: opacity 0.3s;
         }
 
-        a:hover {
+        #aurora-theme-container a:hover {
           opacity: 0.7;
+        }
+
+        /* Dynamic Custom Color Overrides for Aurora Theme */
+        #aurora-theme-container h1, 
+        #aurora-theme-container h2, 
+        #aurora-theme-container h3, 
+        #aurora-theme-container h4,
+        #aurora-theme-container strong {
+          color: ${primaryColor} !important;
+        }
+
+        #aurora-theme-container p, 
+        #aurora-theme-container span, 
+        #aurora-theme-container li,
+        #aurora-theme-container label {
+          color: ${secondaryColor} !important;
+        }
+
+        #aurora-theme-container section {
+          background-color: ${bgColor} !important;
+          border-color: ${secondaryColor}33 !important;
+        }
+
+        #aurora-theme-container .edu-card,
+        #aurora-theme-container .exp-card,
+        #aurora-theme-container .proj-card,
+        #aurora-theme-container .cert-card,
+        #aurora-theme-container .testi-card {
+          background-color: ${bgColor === '#FAFAF7' ? '#FFFFFF' : bgColor} !important;
+          border: 1px solid ${secondaryColor}33 !important;
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -119,7 +157,7 @@ export default function AuroraTheme({ portfolio }) {
         top: 0,
         left: 0,
         height: '2px',
-        background: '#00C896',
+        background: accentColor1,
         zIndex: 1000,
         transition: 'width 0.1s ease-out',
         width: '0%',
@@ -144,13 +182,13 @@ export default function AuroraTheme({ portfolio }) {
               width: '12px',
               height: '12px',
               borderRadius: '50%',
-              border: '2px solid #C9A84C',
+              border: `2px solid ${accentColor2}`,
               background: 'transparent',
               cursor: 'pointer',
               transition: 'all 0.3s',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#C9A84C';
+              e.currentTarget.style.background = accentColor2;
               e.currentTarget.style.transform = 'scale(1.5)';
             }}
             onMouseLeave={(e) => {

@@ -3,6 +3,13 @@ import { useEffect, useRef, useState } from 'react';
 export default function ObsidianTheme({ portfolio }) {
   const { personalInfo: p, contactInfo: c, socialLinks: s, skills, projects, education, experience, certifications, achievements, testimonials, codingProfiles: cp, blogArticles } = portfolio || {};
 
+  const tc = portfolio?.themeCustomization || {};
+  const bgColor = tc.backgroundColor || '#0B0F19';
+  const primaryColor = tc.primaryColor || '#FFFFFF';
+  const secondaryColor = tc.secondaryColor || '#8892A4';
+  const accentColor1 = tc.accentColor1 || '#00F5D4';
+  const accentColor2 = tc.accentColor2 || '#9B5DE5';
+
   const handleResumeDownload = () => {
     if (p?.resumeBase64) {
       const a = document.createElement('a');
@@ -67,10 +74,11 @@ export default function ObsidianTheme({ portfolio }) {
   return (
     <div
       ref={containerRef}
+      id="obsidian-theme-container"
       style={{
         fontFamily: "'IBM Plex Sans', 'Inter', sans-serif",
-        background: '#080B12',
-        color: '#E8EBF4',
+        background: bgColor,
+        color: primaryColor,
         minHeight: '100vh',
         overflow: 'hidden',
         position: 'relative',
@@ -85,7 +93,7 @@ export default function ObsidianTheme({ portfolio }) {
           box-sizing: border-box;
         }
 
-        [data-animate] {
+        #obsidian-theme-container [data-animate] {
           opacity: 0;
           transform: translateY(40px);
           transition: opacity 0.6s ease, transform 0.6s ease;
@@ -94,15 +102,15 @@ export default function ObsidianTheme({ portfolio }) {
         @keyframes glitch {
           0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
             text-shadow:
-              -2px 0 #00F5D4,
-              2px 0 #9B5DE5,
-              0 0 10px #00F5D4;
+              -2px 0 ${accentColor1},
+              2px 0 ${accentColor2},
+              0 0 10px ${accentColor1};
           }
           20%, 24%, 55% {
             text-shadow:
-              2px 0 #00F5D4,
-              -2px 0 #9B5DE5,
-              0 0 10px #9B5DE5;
+              2px 0 ${accentColor1},
+              -2px 0 ${accentColor2},
+              0 0 10px ${accentColor2};
           }
         }
 
@@ -111,29 +119,59 @@ export default function ObsidianTheme({ portfolio }) {
           50%, 100% { opacity: 0; }
         }
 
-        .glitch-text {
+        #obsidian-theme-container .glitch-text {
           animation: glitch 0.5s ease-in-out;
         }
 
-        .cursor-blink {
+        #obsidian-theme-container .cursor-blink {
           display: inline-block;
           width: '2px';
           height: '1em';
-          background: #00F5D4;
+          background: ${accentColor1};
           animation: blink 1s steps(2) infinite;
           margin-left: 4px;
         }
 
-        a {
-          color: #00F5D4;
+        #obsidian-theme-container a {
+          color: ${accentColor1};
           text-decoration: none;
           transition: all 0.3s;
           position: relative;
         }
 
-        a:hover {
-          color: #9B5DE5;
-          text-shadow: 0 0 10px #00F5D4;
+        #obsidian-theme-container a:hover {
+          color: ${accentColor2};
+          text-shadow: 0 0 10px ${accentColor1};
+        }
+
+        /* Dynamic overrides for Obsidian Theme components */
+        #obsidian-theme-container h1,
+        #obsidian-theme-container h2,
+        #obsidian-theme-container h3,
+        #obsidian-theme-container h4,
+        #obsidian-theme-container strong {
+          color: ${primaryColor} !important;
+        }
+
+        #obsidian-theme-container p,
+        #obsidian-theme-container span,
+        #obsidian-theme-container li,
+        #obsidian-theme-container label {
+          color: ${secondaryColor} !important;
+        }
+
+        #obsidian-theme-container section {
+          background-color: ${bgColor} !important;
+          border-color: ${secondaryColor}33 !important;
+        }
+
+        #obsidian-theme-container .edu-card,
+        #obsidian-theme-container .exp-card,
+        #obsidian-theme-container .proj-card,
+        #obsidian-theme-container .cert-card,
+        #obsidian-theme-container .testi-card {
+          background-color: ${bgColor === '#0B0F19' ? '#0F1320' : bgColor} !important;
+          border: 1px solid ${secondaryColor}33 !important;
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -150,11 +188,11 @@ export default function ObsidianTheme({ portfolio }) {
         top: 0,
         left: 0,
         height: '2px',
-        background: 'linear-gradient(90deg, #00F5D4, #9B5DE5)',
+        background: `linear-gradient(90deg, ${accentColor1}, ${accentColor2})`,
         zIndex: 1000,
         transition: 'width 0.1s ease-out',
         width: '0%',
-        boxShadow: '0 0 10px #00F5D4',
+        boxShadow: `0 0 10px ${accentColor1}`,
       }} id="progressBar" />
 
       {/* Animated Background Particles */}

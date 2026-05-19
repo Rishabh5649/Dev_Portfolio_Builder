@@ -3,6 +3,13 @@ import { useEffect, useRef, useState } from 'react';
 export default function PrismTheme({ portfolio }) {
   const { personalInfo: p, contactInfo: c, socialLinks: s, skills, projects, education, experience, certifications, achievements, testimonials, codingProfiles: cp, blogArticles } = portfolio || {};
 
+  const tc = portfolio?.themeCustomization || {};
+  const bgColor = tc.backgroundColor || '#0F0F15';
+  const primaryColor = tc.primaryColor || '#FFFFFF';
+  const secondaryColor = tc.secondaryColor || '#A0A5B5';
+  const accentColor1 = tc.accentColor1 || '#FFD700';
+  const accentColor2 = tc.accentColor2 || '#FF6CAB';
+
   const handleResumeDownload = () => {
     if (p?.resumeBase64) {
       const a = document.createElement('a');
@@ -71,11 +78,14 @@ export default function PrismTheme({ portfolio }) {
   return (
     <div
       ref={containerRef}
+      id="prism-theme-container"
       style={{
         fontFamily: "'Nunito', 'Inter', sans-serif",
-        background: 'linear-gradient(135deg, #667EEA 0%, #764BA2 25%, #F093FB 50%, #4FACFE 100%)',
+        background: bgColor === '#0F0F15' || bgColor === 'transparent'
+          ? 'linear-gradient(135deg, #667EEA 0%, #764BA2 25%, #F093FB 50%, #4FACFE 100%)'
+          : bgColor,
         backgroundAttachment: 'fixed',
-        color: '#FFFFFF',
+        color: primaryColor,
         minHeight: '100vh',
         overflow: 'hidden',
         position: 'relative',
@@ -90,7 +100,7 @@ export default function PrismTheme({ portfolio }) {
           box-sizing: border-box;
         }
 
-        [data-animate] {
+        #prism-theme-container [data-animate] {
           opacity: 0;
           transform: translateY(40px);
           transition: opacity 0.6s ease, transform 0.6s ease;
@@ -111,20 +121,50 @@ export default function PrismTheme({ portfolio }) {
           }
         }
 
-        .float-orb {
+        #prism-theme-container .float-orb {
           animation: float-orb 8s ease-in-out infinite;
         }
 
-        a {
-          color: #FFD700;
+        #prism-theme-container a {
+          color: ${accentColor1};
           text-decoration: none;
           transition: all 0.3s;
           position: relative;
         }
 
-        a:hover {
-          color: #FF6CAB;
-          text-shadow: 0 0 20px rgba(255,107,171,0.5);
+        #prism-theme-container a:hover {
+          color: ${accentColor2};
+          text-shadow: 0 0 20px ${accentColor1};
+        }
+
+        /* Dynamic custom style overrides for PrismTheme components */
+        #prism-theme-container h1,
+        #prism-theme-container h2,
+        #prism-theme-container h3,
+        #prism-theme-container h4,
+        #prism-theme-container strong {
+          color: ${primaryColor} !important;
+        }
+
+        #prism-theme-container p,
+        #prism-theme-container span,
+        #prism-theme-container li,
+        #prism-theme-container label {
+          color: ${secondaryColor} !important;
+        }
+
+        #prism-theme-container section {
+          background-color: transparent !important;
+          border-color: ${secondaryColor}33 !important;
+        }
+
+        #prism-theme-container .edu-card,
+        #prism-theme-container .exp-card,
+        #prism-theme-container .proj-card,
+        #prism-theme-container .cert-card,
+        #prism-theme-container .testi-card {
+          background-color: rgba(255,255,255,0.1) !important;
+          border: 1px solid rgba(255,255,255,0.18) !important;
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -141,11 +181,11 @@ export default function PrismTheme({ portfolio }) {
         top: 0,
         left: 0,
         height: '3px',
-        background: 'linear-gradient(90deg, #FFD700, #FF6CAB)',
+        background: `linear-gradient(90deg, ${accentColor1}, ${accentColor2})`,
         zIndex: 1000,
         transition: 'width 0.1s ease-out',
         width: '0%',
-        boxShadow: '0 0 20px #FFD700',
+        boxShadow: `0 0 20px ${accentColor1}`,
       }} id="progressBar" />
 
       {/* Floating Gradient Orbs */}

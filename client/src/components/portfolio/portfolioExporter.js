@@ -30,12 +30,17 @@ export function generatePortfolioHTML(portfolio) {
 
 
   const theme = template;
-  const a1 = theme === 'aurora' ? (tc?.auroraAccent1 || '#00C896')
-    : theme === 'obsidian' ? (tc?.obsidianAccent1 || '#00F5D4')
-    : (tc?.prismAccent1 || '#FFD700');
-  const a2 = theme === 'aurora' ? (tc?.auroraAccent2 || '#C9A84C')
-    : theme === 'obsidian' ? (tc?.obsidianAccent2 || '#9B5DE5')
-    : (tc?.prismAccent2 || '#FF6CAB');
+  const defaultBg = theme === 'aurora' ? '#FAFAF7' : theme === 'obsidian' ? '#080B12' : '#0F0F15';
+  const defaultPrimary = theme === 'aurora' ? '#0F0F0F' : '#FFFFFF';
+  const defaultSecondary = theme === 'aurora' ? '#6B6B6B' : theme === 'obsidian' ? '#8892A4' : '#A0A5B5';
+  const defaultAccent1 = theme === 'aurora' ? '#00C896' : theme === 'obsidian' ? '#00F5D4' : '#FFD700';
+  const defaultAccent2 = theme === 'aurora' ? '#C9A84C' : theme === 'obsidian' ? '#9B5DE5' : '#FF6CAB';
+
+  const bgColor = tc.backgroundColor || defaultBg;
+  const primaryColor = tc.primaryColor || defaultPrimary;
+  const secondaryColor = tc.secondaryColor || defaultSecondary;
+  const a1 = tc.accentColor1 || defaultAccent1;
+  const a2 = tc.accentColor2 || defaultAccent2;
 
   const esc = str => String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const normalizeUrl = (url) => {
@@ -81,13 +86,13 @@ export function generatePortfolioHTML(portfolio) {
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&family=Syne:wght@700;800&family=Nunito:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous">
 <style>
-:root{--bg:#FAFAF7;--bg-alt:#FFFFFF;--surface:#FFFFFF;--s2:#F4F4F0;--t1:#0F0F0F;--t2:#6B6B6B;--a1:${a1};--a2:${a2};--a3:#FF6B6B;--bd:#E8E8E2;--sh:rgba(0,0,0,0.08);--fd:"Playfair Display",Georgia,serif;--fb:"DM Sans",system-ui,sans-serif;--fm:"JetBrains Mono",monospace;--nb:rgba(250,250,247,0.92);--nbd:#E8E8E2;}
-[data-theme="obsidian"]{--bg:#080B12;--bg-alt:#0F1320;--surface:#0F1320;--s2:#141B2D;--t1:#E8EBF4;--t2:#8892A4;--a1:${a1};--a2:${a2};--a3:#FF6B6B;--bd:#1E2535;--sh:rgba(0,245,212,0.1);--fd:"Space Grotesk",system-ui,sans-serif;--fb:"IBM Plex Sans",system-ui,sans-serif;--fm:"Fira Code",monospace;--nb:rgba(8,11,18,0.88);--nbd:#1E2535;}
-[data-theme="prism"]{--bg:transparent;--bg-alt:rgba(255,255,255,0.08);--surface:rgba(255,255,255,0.1);--s2:rgba(255,255,255,0.06);--t1:#fff;--t2:rgba(255,255,255,0.72);--a1:${a1};--a2:${a2};--a3:#FF6CAB;--bd:rgba(255,255,255,0.18);--sh:rgba(0,0,0,0.2);--fd:"Syne",system-ui,sans-serif;--fb:"Nunito",system-ui,sans-serif;--fm:"Source Code Pro",monospace;--nb:rgba(102,126,234,0.7);--nbd:rgba(255,255,255,0.2);}
+:root{--bg:${bgColor};--bg-alt:#FFFFFF;--surface:#FFFFFF;--s2:#F4F4F0;--t1:${primaryColor};--t2:${secondaryColor};--a1:${a1};--a2:${a2};--a3:#FF6B6B;--bd:#E8E8E2;--sh:rgba(0,0,0,0.08);--fd:"Playfair Display",Georgia,serif;--fb:"DM Sans",system-ui,sans-serif;--fm:"JetBrains Mono",monospace;--nb:rgba(250,250,247,0.92);--nbd:#E8E8E2;}
+[data-theme="obsidian"]{--bg:${bgColor};--bg-alt:#0F1320;--surface:#0F1320;--s2:#141B2D;--t1:${primaryColor};--t2:${secondaryColor};--a1:${a1};--a2:${a2};--a3:#FF6B6B;--bd:#1E2535;--sh:rgba(0,245,212,0.1);--fd:"Space Grotesk",system-ui,sans-serif;--fb:"IBM Plex Sans",system-ui,sans-serif;--fm:"Fira Code",monospace;--nb:rgba(8,11,18,0.88);--nbd:#1E2535;}
+[data-theme="prism"]{--bg:${bgColor};--bg-alt:rgba(255,255,255,0.08);--surface:rgba(255,255,255,0.1);--s2:rgba(255,255,255,0.06);--t1:${primaryColor};--t2:${secondaryColor};--a1:${a1};--a2:${a2};--a3:#FF6CAB;--bd:rgba(255,255,255,0.18);--sh:rgba(0,0,0,0.2);--fd:"Syne",system-ui,sans-serif;--fb:"Nunito",system-ui,sans-serif;--fm:"Source Code Pro",monospace;--nb:rgba(102,126,234,0.7);--nbd:rgba(255,255,255,0.2);}
 *{margin:0;padding:0;box-sizing:border-box;}
 html{scroll-behavior:smooth;}
 body{font-family:var(--fb);background:var(--bg);color:var(--t1);line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased;}
-[data-theme="prism"] body{background:linear-gradient(135deg,#667EEA,#764BA2,#F093FB,#4FACFE);background-size:400% 400%;animation:gradShift 12s ease infinite;min-height:100vh;}
+[data-theme="prism"] body{background:${bgColor === '#0F0F15' || bgColor === 'transparent' ? 'linear-gradient(135deg,#667EEA,#764BA2,#F093FB,#4FACFE)' : bgColor};background-size:400% 400%;animation:gradShift 12s ease infinite;min-height:100vh;}
 @keyframes gradShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 a{color:var(--a1);text-decoration:none;transition:all .3s;}
 a:hover{opacity:.8;}

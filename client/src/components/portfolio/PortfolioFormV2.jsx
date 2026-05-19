@@ -819,17 +819,46 @@ export default function PortfolioFormV2() {
         </button>
 
         <h5 style={{ marginTop: '16px', marginBottom: '12px', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>Theme Colors</h5>
-        {['primary', 'secondary', 'accent'].map((color) => (
-          <div key={color} style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontSize: '12px', fontWeight: '600', minWidth: '80px', color: 'var(--text-secondary)' }}>
-              {color.charAt(0).toUpperCase() + color.slice(1)}
+        {[
+          { label: 'Background Color', key: 'backgroundColor', default: portfolio.template === 'aurora' ? '#FAFAF7' : portfolio.template === 'obsidian' ? '#0B0F19' : '#0F0F15' },
+          { label: 'Primary Content Color', key: 'primaryColor', default: portfolio.template === 'aurora' ? '#1C1C1A' : '#FFFFFF' },
+          { label: 'Secondary Content Color', key: 'secondaryColor', default: portfolio.template === 'aurora' ? '#70706B' : portfolio.template === 'obsidian' ? '#8892A4' : '#A0A5B5' },
+          { label: 'Accent Color 1', key: 'accentColor1', default: portfolio.template === 'aurora' ? '#00C896' : portfolio.template === 'obsidian' ? '#00F5D4' : '#FFD700' },
+          { label: 'Accent Color 2', key: 'accentColor2', default: portfolio.template === 'aurora' ? '#C9A84C' : portfolio.template === 'obsidian' ? '#9B5DE5' : '#FF6CAB' },
+        ].map((item) => (
+          <div key={item.key} style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <label style={{ fontSize: '12px', fontWeight: '600', minWidth: '160px', color: 'var(--text-secondary)' }}>
+              {item.label}
             </label>
             <input
               type="color"
-              value={portfolio.themeCustomization?.[color] || '#ffffff'}
-              onChange={(e) => dispatch(setThemeCustomization({ [color]: e.target.value }))}
-              style={{ width: '50px', height: '36px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+              value={portfolio.themeCustomization?.[item.key] || item.default}
+              onChange={(e) => dispatch(setThemeCustomization({ [item.key]: e.target.value }))}
+              style={{ width: '48px', height: '32px', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: 0, background: 'transparent' }}
             />
+            <button
+              onClick={() => dispatch(setThemeCustomization({ [item.key]: item.default }))}
+              style={{
+                fontSize: '11px',
+                padding: '4px 10px',
+                border: '1px solid var(--border)',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-secondary)',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--accent)';
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border)';
+                e.currentTarget.style.color = 'var(--text-secondary)';
+              }}
+            >
+              Reset
+            </button>
           </div>
         ))}
       </AccordionSection>
