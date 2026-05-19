@@ -28,6 +28,8 @@ export default function ATSAnalyzerModal({
     return () => clearTimeout(handler);
   }, [resume]);
 
+  const [selectedCategory, setSelectedCategory] = useState(null);
+
   // ── 2. STABLE DETERMINISTIC RECRUITER CALIBRATED SCORING ENGINE ────────────
   const analysis = useMemo(() => {
     if (!debouncedResume) return null;
@@ -516,13 +518,13 @@ export default function ATSAnalyzerModal({
 
   // ── 6. CLICK DETAILED RECRUITER AUDIT DRAWER ──
   const drawerInfo = useMemo(() => {
-    if (!activeCategory || !analysis) return null;
-    const isCategory = ['formatting', 'content', 'skills', 'impact', 'readability'].includes(activeCategory);
+    if (!selectedCategory || !analysis) return null;
+    const isCategory = ['formatting', 'content', 'skills', 'impact', 'readability'].includes(selectedCategory);
     const spacing = resume.spacing || {};
     const fontOverride = resume.fontSizeOverride || 11;
 
     if (isCategory) {
-      switch (activeCategory) {
+      switch (selectedCategory) {
         case 'formatting':
           return {
             title: 'Formatting & Margin Boundaries',
@@ -598,7 +600,7 @@ export default function ATSAnalyzerModal({
       }
     } else {
       // Detailed section audit
-      const sec = activeCategory;
+      const sec = selectedCategory;
       const educ = (resume.education || []).filter(e => !e.hidden);
       const exp = (resume.experience || []).filter(e => !e.hidden);
       const proj = (resume.projects || []).filter(p => !p.hidden);
@@ -679,7 +681,7 @@ export default function ATSAnalyzerModal({
           };
       }
     }
-  }, [activeCategory, analysis, resume]);
+  }, [selectedCategory, analysis, resume]);
 
   const getScoreColor = (score) => {
     if (score >= 80) return 'var(--success)';
@@ -720,7 +722,7 @@ export default function ATSAnalyzerModal({
         border: '1px solid var(--border)',
         borderRadius: 'var(--radius-lg)',
         width: '100%',
-        maxWidth: activeCategory ? '1200px' : '980px',
+        maxWidth: selectedCategory ? '1200px' : '980px',
         height: '86vh',
         display: 'flex',
         flexDirection: 'column',
@@ -798,10 +800,10 @@ export default function ATSAnalyzerModal({
           
           {/* LEFT PANEL: The Main Dashboard View */}
           <div style={{
-            flex: activeCategory ? '0 0 60%' : '0 0 100%',
+            flex: selectedCategory ? '0 0 60%' : '0 0 100%',
             overflowY: 'auto',
             padding: '24px',
-            borderRight: activeCategory ? '1px solid var(--border)' : 'none',
+            borderRight: selectedCategory ? '1px solid var(--border)' : 'none',
             transition: 'all 0.3s ease-in-out',
             boxSizing: 'border-box'
           }}>
@@ -895,30 +897,41 @@ export default function ATSAnalyzerModal({
                     { label: 'Skills Diversity & Redundancy', val: analysis.skillsScore, key: 'skills' },
                     { label: 'Verbs & Structural Impact', val: analysis.impactScore, key: 'impact' },
                     { label: 'Readability & Scannability', val: analysis.readabilityScore, key: 'readability' },
-                  ].map((item, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => setActiveCategory(activeCategory === item.key ? null : item.key)}
-                      onMouseEnter={() => setActiveCategory(item.key)}
-                      onMouseLeave={() => { if (activeCategory === item.key) setActiveCategory(null); }}
-                      style={{
-                        cursor: 'pointer',
-                        padding: '4px 6px',
-                        borderRadius: '6px',
-                        background: activeCategory === item.key ? 'var(--bg-elevated)' : 'transparent',
-                        transition: 'all 0.2s',
-                        border: activeCategory === item.key ? '1px solid var(--accent)' : '1px solid transparent'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '3px' }}>
-                        <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{item.label}</span>
-                        <span style={{ color: getScoreColor(item.val), fontWeight: 700 }}>{item.val}%</span>
+                  ].map((item, idx) => {
+                    const isHoveredOrSelected = selectedCategory === item.key || activeCategory === item.key;
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => {
+                          const nextVal = selectedCategory === item.key ? null : item.key;
+                          setSelectedCategory(nextVal);
+                          setActiveCategory(nextVal);
+                        }}
+                        onMouseEnter={() => {
+                          if (!selectedCategory) setActiveCategory(item.key);
+                        }}
+                        onMouseLeave={() => {
+                          if (!selectedCategory) setActiveCategory(null);
+                        }}
+                        style={{
+                          cursor: 'pointer',
+                          padding: '4px 6px',
+                          borderRadius: '6px',
+                          background: isHoveredOrSelected ? 'var(--bg-elevated)' : 'transparent',
+                          transition: 'all 0.2s',
+                          border: isHoveredOrSelected ? '1px solid var(--accent)' : '1px solid transparent'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '3px' }}>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{item.label}</span>
+                          <span style={{ color: getScoreColor(item.val), fontWeight: 700 }}>{item.val}%</span>
+                        </div>
+                        <div style={{ height: '4px', background: 'var(--border)', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', background: getScoreColor(item.val), width: `${item.val}%`, borderRadius: '4px' }} />
+                        </div>
                       </div>
-                      <div style={{ height: '4px', background: 'var(--border)', borderRadius: '4px', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', background: getScoreColor(item.val), width: `${item.val}%`, borderRadius: '4px' }} />
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Specializations list */}
@@ -1106,16 +1119,24 @@ export default function ATSAnalyzerModal({
                   { label: 'Skill Sets', key: 'skills' }
                 ].map((sec, i) => {
                   const strength = analysis.heatmap[sec.key] || 'weak';
-                  const isActive = activeCategory === sec.key;
+                  const isHoveredOrSelected = selectedCategory === sec.key || activeCategory === sec.key;
                   return (
                     <div
                       key={i}
-                      onClick={() => setActiveCategory(activeCategory === sec.key ? null : sec.key)}
-                      onMouseEnter={() => setActiveCategory(sec.key)}
-                      onMouseLeave={() => { if (activeCategory === sec.key) setActiveCategory(null); }}
+                      onClick={() => {
+                        const nextVal = selectedCategory === sec.key ? null : sec.key;
+                        setSelectedCategory(nextVal);
+                        setActiveCategory(nextVal);
+                      }}
+                      onMouseEnter={() => {
+                        if (!selectedCategory) setActiveCategory(sec.key);
+                      }}
+                      onMouseLeave={() => {
+                        if (!selectedCategory) setActiveCategory(null);
+                      }}
                       style={{
-                        background: isActive ? 'var(--bg-elevated)' : 'var(--bg-surface)',
-                        border: `1px solid ${isActive ? 'var(--accent)' : getHeatmapColor(strength) + '25'}`,
+                        background: isHoveredOrSelected ? 'var(--bg-elevated)' : 'var(--bg-surface)',
+                        border: `1px solid ${isHoveredOrSelected ? 'var(--accent)' : getHeatmapColor(strength) + '25'}`,
                         borderLeft: `3px solid ${getHeatmapColor(strength)}`,
                         padding: '10px',
                         borderRadius: '6px',
@@ -1145,7 +1166,7 @@ export default function ATSAnalyzerModal({
           </div>
 
           {/* RIGHT PANEL: Slide-over Recruiter Drawer Column */}
-          {activeCategory && drawerInfo && (
+          {selectedCategory && drawerInfo && (
             <div style={{
               flex: '0 0 40%',
               overflowY: 'auto',
@@ -1164,7 +1185,7 @@ export default function ATSAnalyzerModal({
                   {drawerInfo.title}
                 </h3>
                 <button
-                  onClick={() => setActiveCategory(null)}
+                  onClick={() => { setSelectedCategory(null); setActiveCategory(null); }}
                   style={{
                     background: 'rgba(255,255,255,0.05)',
                     border: 'none',

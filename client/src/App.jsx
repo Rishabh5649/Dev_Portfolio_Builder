@@ -49,6 +49,21 @@ function App() {
                 <AtsAnalyzer />
               </ProtectedRoute>
             } />
+            <Route path="/ats_analyzer" element={
+              <ProtectedRoute>
+                <AtsAnalyzer />
+              </ProtectedRoute>
+            } />
+            <Route path="/ats analyzer" element={
+              <ProtectedRoute>
+                <AtsAnalyzer />
+              </ProtectedRoute>
+            } />
+            <Route path="/ats%20analyzer" element={
+              <ProtectedRoute>
+                <AtsAnalyzer />
+              </ProtectedRoute>
+            } />
 
             {/* OAuth Callback */}
             <Route path="/auth/callback" element={<OAuthCallback />} />
