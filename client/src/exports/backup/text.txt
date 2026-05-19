@@ -1,0 +1,246 @@
+# PORTFOLIO / RESUME RESTORATION DETAILS
+
+## BASIC INFO
+
+* Full Name: [Enter Full Name]
+* Role / Title: [Enter Role / Title]
+* Email: [Enter Email]
+* Phone: [Enter Phone Number]
+* Location: [Enter Location]
+* Professional Summary / About Me: [Enter Short Professional Summary]
+* Profile Picture: [Yes / No]
+* LinkedIn URL: [Enter LinkedIn URL]
+* GitHub URL: [Enter GitHub URL]
+* Resume PDF: [Attach Resume PDF]
+* Open To: [Work / Freelancing / Internship / Other]
+* Resume Theme Used: [Aurora / Obsidian / Prism / Custom]
+
+---
+
+# SOCIAL LINKS
+
+* LinkedIn: [Enter LinkedIn URL]
+* GitHub: [Enter GitHub URL]
+* Portfolio Website: [Enter Portfolio URL]
+* LeetCode: [Enter LeetCode URL]
+* HackerRank: [Enter HackerRank URL]
+* CodeChef: [Enter CodeChef URL]
+* Other Social Links: [Enter Additional Links]
+
+---
+
+# SKILLS
+
+## Languages
+
+* [Enter Programming Languages]
+
+## Frameworks / Libraries
+
+* [Enter Frameworks & Libraries]
+
+## Tools / Platforms
+
+* [Enter Tools & Platforms]
+
+## Databases
+
+* [Enter Databases]
+
+## Other Skills
+
+* [Enter Additional Skills]
+
+---
+
+# PROJECTS
+
+## Project 1
+
+* Title: [Enter Project Title]
+* Short Description: [Enter Short Description]
+* Full Description: [Can be taken from README file using GitHub URL]
+* Tech Stack: [Enter Tech Stack]
+* GitHub Link: [Enter GitHub URL]
+* Live Link: [Enter Live Project URL]
+* Features: [Enter Features]
+* Project Image Available: [Yes / No]
+
+## Project 2
+
+* Title: [Enter Project Title]
+* Short Description: [Enter Short Description]
+* Full Description: [Enter Full Description]
+* Tech Stack: [Enter Tech Stack]
+* GitHub Link: [Enter GitHub URL]
+* Live Link: [Enter Live Project URL]
+* Features: [Enter Features]
+* Project Image Available: [Yes / No]
+
+## Project 3
+
+* Title: [Enter Project Title]
+* Short Description: [Enter Short Description]
+* Full Description: [Enter Full Description]
+* Tech Stack: [Enter Tech Stack]
+* GitHub Link: [Enter GitHub URL]
+* Live Link: [Enter Live Project URL]
+* Features: [Enter Features]
+* Project Image Available: [Yes / No]
+
+---
+
+# EXPERIENCE
+
+## Experience 1
+
+* Company: [Enter Company Name]
+* Role: [Enter Role]
+* Duration: [Enter Duration]
+* Location: [Enter Location]
+* Description: [Enter Description]
+* Technologies Used: [Enter Technologies]
+
+## Experience 2
+
+* Company: [Enter Company Name]
+* Role: [Enter Role]
+* Duration: [Enter Duration]
+* Location: [Enter Location]
+* Description: [Enter Description]
+* Technologies Used: [Enter Technologies]
+
+---
+
+# EDUCATION
+
+## Education 1
+
+* College / School: [Enter Institution Name]
+* Degree: [Enter Degree]
+* Branch / Field: [Enter Branch / Field]
+* CGPA / Percentage: [Enter CGPA / Percentage]
+* Start Year – End Year: [Enter Duration]
+
+## Education 2
+
+* College / School: [Enter Institution Name]
+* Degree: [Enter Degree]
+* Branch / Field: [Enter Branch / Field]
+* CGPA / Percentage: [Enter CGPA / Percentage]
+* Start Year – End Year: [Enter Duration]
+
+---
+
+# CERTIFICATIONS
+
+* Certification 1: [Enter Certification]
+* Certification 2: [Enter Certification]
+* Certification 3: [Enter Certification]
+
+---
+
+# ACHIEVEMENTS
+
+* Achievement 1: [Enter Achievement]
+* Achievement 2: [Enter Achievement]
+* Achievement 3: [Enter Achievement]
+
+---
+
+# HACKATHONS / EVENTS
+
+* Event Name: [Enter Event Name]
+* Position / Result: [Enter Position / Result]
+* Description: [Enter Description]
+
+---
+
+# TESTIMONIALS (if any)
+
+* Person Name: [Enter Name]
+* Role: [Enter Role]
+* Testimonial Text: [Enter Testimonial]
+
+---
+
+# BLOGS / ARTICLES / PUBLICATIONS (if any)
+
+* Article Title: [Enter Article Title]
+* Link: [Enter Article URL]
+* Description: [Enter Description]
+
+---
+
+# PORTFOLIO FEATURES
+
+Included Features from Original Project:
+
+* Dark Mode
+* Multiple Themes
+* Live Preview
+* Resume PDF Export
+* Resume DOCX Export
+* Portfolio HTML Export
+* Authentication / Login
+* Dashboard
+* Theme Customizer
+* Responsive Design
+* Animations
+* Contact Form
+* Project Filtering
+* GitHub Integration
+* Local Storage Save
+* MongoDB Backend
+
+---
+
+# UI / DESIGN DETAILS
+
+## Fonts Used
+
+* [Enter Fonts Used]
+
+## Primary Colors
+
+* [Enter Primary Colors]
+
+## Preferred Theme
+
+* [Enter Preferred Theme]
+
+## Animations / Effects
+
+* [Enter Animation Details]
+
+## Special UI Features
+
+* 3D Animations
+* Smooth Transitions
+* Interactive UI Components
+
+---
+
+# SCREENSHOTS PROVIDED
+
+Included Screenshots:
+
+* Landing Page
+* Login Page
+* Dashboard
+* Portfolio Form
+* Resume Form
+* Portfolio Preview
+* Resume Preview
+* Theme Screenshots
+* Popup / Modal Screenshots
+
+---
+
+# FILES PROVIDED
+
+Included Files:
+
+* Portfolio HTML Export
+* Resume PDF
+* Screenshots Folder

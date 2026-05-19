@@ -691,25 +691,41 @@ export default function ObsidianTheme({ portfolio }) {
           <section style={{ padding: '60px 40px', borderTop: '1px solid #1E2535', position: 'relative', zIndex: 1 }}>
             <h2 data-animate style={{ fontSize: '32px', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, marginBottom: '40px', color: '#00F5D4', textAlign: 'center' }}>Certifications</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-              {certifications.filter(c => c.name || c.title).map((cert, i) => (
-                <div key={i} data-animate onClick={() => setCertModal_obsidian(cert)}
-                  style={{ padding: '22px', background: '#0F1320', border: '1px solid #1E2535', borderLeft: '3px solid #9B5DE5', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.25s', position: 'relative', overflow: 'hidden' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#111827'; e.currentTarget.style.borderColor = '#9B5DE5'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(155,93,229,0.2)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = '#0F1320'; e.currentTarget.style.borderColor = '#1E2535'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
-                >
-                  <div style={{ display:'flex', alignItems:'flex-start', gap:'12px' }}>
-                    <div style={{ width:'38px', height:'38px', borderRadius:'8px', background:'linear-gradient(135deg,rgba(155,93,229,0.3),rgba(0,245,212,0.3))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px', flexShrink:0 }}>🎓</div>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:'14px', fontWeight:700, color:'#E8EBF4', marginBottom:'4px', lineHeight:1.4 }}>{cert.name || cert.title}</div>
-                      <div style={{ fontSize:'12px', color:'#9B5DE5', fontWeight:600, marginBottom:'8px' }}>{cert.organization || cert.issuer}</div>
-                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                        <span style={{ fontSize:'11px', color:'#6B7A99', background:'rgba(107,122,153,0.1)', padding:'3px 8px', borderRadius:'20px' }}>📅 {cert.date}</span>
-                        {(cert.imageBase64 || cert.url || cert.certificateUrl) && <span style={{ fontSize:'11px', color:'#00F5D4', fontWeight:600 }}>View →</span>}
+              {certifications.filter(c => c.name || c.title).map((cert, i) => {
+                const hasDoc = !!(cert.imageBase64 || cert.url || cert.certificateUrl || cert.link);
+                return (
+                  <div key={i} data-animate 
+                    onClick={hasDoc ? () => setCertModal_obsidian(cert) : undefined}
+                    style={{ padding: '22px', background: '#0F1320', border: '1px solid #1E2535', borderLeft: '3px solid #9B5DE5', borderRadius: '10px', cursor: hasDoc ? 'pointer' : 'default', transition: 'all 0.25s', position: 'relative', overflow: 'hidden' }}
+                    onMouseEnter={e => {
+                      if (hasDoc) {
+                        e.currentTarget.style.background = '#111827';
+                        e.currentTarget.style.borderColor = '#9B5DE5';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(155,93,229,0.2)';
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = '#0F1320';
+                      e.currentTarget.style.borderColor = '#1E2535';
+                      e.currentTarget.style.transform = 'none';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <div style={{ display:'flex', alignItems:'flex-start', gap:'12px' }}>
+                      <div style={{ width:'38px', height:'38px', borderRadius:'8px', background:'linear-gradient(135deg,rgba(155,93,229,0.3),rgba(0,245,212,0.3))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px', flexShrink:0 }}>🎓</div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:'14px', fontWeight:700, color:'#E8EBF4', marginBottom:'4px', lineHeight:1.4 }}>{cert.name || cert.title}</div>
+                        <div style={{ fontSize:'12px', color:'#9B5DE5', fontWeight:600, marginBottom:'8px' }}>{cert.organization || cert.issuer}</div>
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                          <span style={{ fontSize:'11px', color:'#6B7A99', background:'rgba(107,122,153,0.1)', padding:'3px 8px', borderRadius:'20px' }}>📅 {cert.date}</span>
+                          {hasDoc && <span style={{ fontSize:'11px', color:'#00F5D4', fontWeight:600 }}>View →</span>}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         </>

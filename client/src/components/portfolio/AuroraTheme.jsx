@@ -628,24 +628,37 @@ export default function AuroraTheme({ portfolio }) {
           <section style={{ padding: '80px 80px' }}>
             <h2 data-animate style={{ fontSize: '36px', fontFamily: "'Playfair Display', serif", fontWeight: 700, marginBottom: '48px', color: '#0F0F0F', textAlign: 'center' }}>Certifications</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '24px', maxWidth: '1200px', margin: '0 auto' }}>
-              {certifications.filter(c => c.name || c.title).map((cert, i) => (
-                <div key={i} data-animate onClick={() => setCertModal_aurora(cert)} style={{ padding: '24px', background: '#FFFFFF', border: '1px solid #E8E8E2', borderRadius: '12px', borderTop: '4px solid #C9A84C', cursor: 'pointer', transition: 'all 0.3s ease', display:'flex', flexDirection:'column', height:'100%' }}
-                  onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.08)'; e.currentTarget.style.transform = 'translateY(-4px)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                >
-                  <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'16px' }}>
-                    <div style={{ width:'40px', height:'40px', borderRadius:'50%', background:'#F5F5F0', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px', flexShrink:0 }}>🎓</div>
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontSize: '16px', fontWeight: 700, color: '#0F0F0F', lineHeight:1.3 }}>{cert.name || cert.title}</div>
-                      <div style={{ fontSize: '13px', color: '#C9A84C', fontWeight: 600, marginTop:'4px' }}>{cert.organization || cert.issuer}</div>
+              {certifications.filter(c => c.name || c.title).map((cert, i) => {
+                const hasDoc = !!(cert.imageBase64 || cert.url || cert.certificateUrl || cert.link);
+                return (
+                  <div key={i} data-animate 
+                    onClick={hasDoc ? () => setCertModal_aurora(cert) : undefined} 
+                    style={{ padding: '24px', background: '#FFFFFF', border: '1px solid #E8E8E2', borderRadius: '12px', borderTop: '4px solid #C9A84C', cursor: hasDoc ? 'pointer' : 'default', transition: 'all 0.3s ease', display:'flex', flexDirection:'column', height:'100%' }}
+                    onMouseEnter={e => {
+                      if (hasDoc) {
+                        e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.08)';
+                        e.currentTarget.style.transform = 'translateY(-4px)';
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.boxShadow = 'none';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'16px' }}>
+                      <div style={{ width:'40px', height:'40px', borderRadius:'50%', background:'#F5F5F0', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px', flexShrink:0 }}>🎓</div>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#0F0F0F', lineHeight:1.3 }}>{cert.name || cert.title}</div>
+                        <div style={{ fontSize: '13px', color: '#C9A84C', fontWeight: 600, marginTop:'4px' }}>{cert.organization || cert.issuer}</div>
+                      </div>
+                    </div>
+                    <div style={{ marginTop:'auto', paddingTop:'16px', borderTop:'1px solid #E8E8E2', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                      <div style={{ fontSize: '12px', color: '#6B6B6B', display:'flex', alignItems:'center', gap:'4px' }}><span>📅</span> {cert.date}</div>
+                      {hasDoc && <div style={{ fontSize: '12px', color: '#C9A84C', fontWeight: 600, textTransform:'uppercase', letterSpacing:'0.5px' }}>View Detail</div>}
                     </div>
                   </div>
-                  <div style={{ marginTop:'auto', paddingTop:'16px', borderTop:'1px solid #E8E8E2', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                    <div style={{ fontSize: '12px', color: '#6B6B6B', display:'flex', alignItems:'center', gap:'4px' }}><span>📅</span> {cert.date}</div>
-                    {(cert.imageBase64 || cert.url || cert.certificateUrl) && <div style={{ fontSize: '12px', color: '#C9A84C', fontWeight: 600, textTransform:'uppercase', letterSpacing:'0.5px' }}>View Detail</div>}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         </>

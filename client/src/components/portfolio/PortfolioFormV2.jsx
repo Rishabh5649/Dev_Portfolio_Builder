@@ -478,7 +478,7 @@ export default function PortfolioFormV2() {
       {/* Certifications */}
       <AccordionSection
         title={`🏆 Certifications ${portfolio.certifications?.length ? `(${portfolio.certifications.length})` : ''}`}
-        onAddClick={() => dispatch(addCertification({ name: '', issuer: '', date: '', url: '', image: '' }))}
+        onAddClick={() => dispatch(addCertification({ name: '', issuer: '', date: '', url: '', image: '', imageBase64: '', imageType: '' }))}
       >
         {(portfolio.certifications || []).map((cert, idx) => (
           <motion.div key={idx} style={{ padding: '12px', background: 'var(--bg-secondary)', borderRadius: '4px', marginBottom: '12px', position: 'relative' }}>
@@ -500,6 +500,98 @@ export default function PortfolioFormV2() {
             <FormInput label="Issuing Organization" value={cert.issuer} onChange={(e) => dispatch(updateCertification({ idx, data: { ...cert, issuer: e.target.value } }))} />
             <FormInput label="Issue Date" value={cert.date} onChange={(e) => dispatch(updateCertification({ idx, data: { ...cert, date: e.target.value } }))} />
             <FormInput label="Certificate URL" value={cert.url} onChange={(e) => dispatch(updateCertification({ idx, data: { ...cert, url: e.target.value } }))} />
+            
+            {/* File Upload Option */}
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '12px', fontWeight: '600', display: 'block', marginBottom: '4px', color: 'var(--text-secondary)' }}>
+                Certificate Document (PDF or Image)
+              </label>
+              {cert.imageBase64 ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    border: '1px solid var(--border)',
+                    borderRadius: '4px',
+                    background: 'rgba(16, 185, 129, 0.08)',
+                    borderLeft: '3px solid #10B981',
+                    fontSize: '13px',
+                    color: '#10B981',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontWeight: '500'
+                  }}>
+                    ✓ Certificate Uploaded ({cert.imageType?.toUpperCase()})
+                  </div>
+                  <button
+                    onClick={() => dispatch(updateCertification({ idx, data: { ...cert, imageBase64: '', imageType: '' } }))}
+                    style={{
+                      padding: '8px',
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      color: '#EF4444',
+                      border: '1px solid rgba(239, 68, 68, 0.2)',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    title="Remove certificate"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => document.getElementById(`cert-input-${idx}`)?.click()}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      border: '1px dashed var(--border)',
+                      borderRadius: '4px',
+                      background: 'var(--bg-secondary)',
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      textAlign: 'center',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <Upload size={14} /> Upload PDF / Image
+                  </button>
+                  <input
+                    id={`cert-input-${idx}`}
+                    type="file"
+                    accept="image/*,.pdf"
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (uploadEvent) => {
+                          const type = file.type.includes('pdf') ? 'pdf' : 'image';
+                          dispatch(updateCertification({
+                            idx,
+                            data: {
+                              ...cert,
+                              imageBase64: uploadEvent.target.result,
+                              imageType: type
+                            }
+                          }));
+                          success('Certificate file uploaded successfully');
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </>
+              )}
+            </div>
           </motion.div>
         ))}
       </AccordionSection>

@@ -607,6 +607,7 @@ export default function PrismTheme({ portfolio }) {
             </div>
           </section>
         )}
+
         {/* CERTIFICATIONS */}
         {certifications?.filter(c => c.name || c.title).length > 0 && (
           <>
@@ -636,29 +637,45 @@ export default function PrismTheme({ portfolio }) {
             <section style={{ padding: '60px 40px', background: 'rgba(255,255,255,0.05)' }}>
               <h2 data-animate style={{ fontSize: '40px', fontFamily: "'Syne', sans-serif", fontWeight: 700, marginBottom: '40px', color: '#FFFFFF', textAlign: 'center' }}>Certifications</h2>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-                {certifications.filter(c => c.name || c.title).map((cert, i) => (
-                  <div key={i} data-animate onClick={() => setCertModal_prism(cert)} style={{ padding: '24px', background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', position:'relative', overflow:'hidden' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,215,0,0.08)'; e.currentTarget.style.borderColor = 'rgba(255,215,0,0.3)'; e.currentTarget.style.transform = 'translateY(-4px)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                  >
-                    <div style={{ display:'flex', alignItems:'center', gap:'16px', marginBottom:'20px' }}>
-                      <div style={{ width:'48px', height:'48px', borderRadius:'12px', background:'rgba(255,215,0,0.1)', border:'1px solid rgba(255,215,0,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'22px', flexShrink:0 }}>🎓</div>
-                      <div>
-                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF', marginBottom: '4px', lineHeight:1.2 }}>{cert.name || cert.title}</div>
-                        <div style={{ fontSize: '13px', color: '#FFD700', fontWeight: 600 }}>{cert.organization || cert.issuer}</div>
+                {certifications.filter(c => c.name || c.title).map((cert, i) => {
+                  const hasDoc = !!(cert.imageBase64 || cert.url || cert.certificateUrl || cert.link);
+                  return (
+                    <div key={i} data-animate 
+                      onClick={hasDoc ? () => setCertModal_prism(cert) : undefined} 
+                      style={{ padding: '24px', background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', cursor: hasDoc ? 'pointer' : 'default', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', position:'relative', overflow:'hidden' }}
+                      onMouseEnter={e => {
+                        if (hasDoc) {
+                          e.currentTarget.style.background = 'rgba(255,215,0,0.08)';
+                          e.currentTarget.style.borderColor = 'rgba(255,215,0,0.3)';
+                          e.currentTarget.style.transform = 'translateY(-4px)';
+                        }
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      <div style={{ display:'flex', alignItems:'center', gap:'16px', marginBottom:'20px' }}>
+                        <div style={{ width:'48px', height:'48px', borderRadius:'12px', background:'rgba(255,215,0,0.1)', border:'1px solid rgba(255,215,0,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'22px', flexShrink:0 }}>🎓</div>
+                        <div>
+                          <div style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF', marginBottom: '4px', lineHeight:1.2 }}>{cert.name || cert.title}</div>
+                          <div style={{ fontSize: '13px', color: '#FFD700', fontWeight: 600 }}>{cert.organization || cert.issuer}</div>
+                        </div>
+                      </div>
+                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:'16px', borderTop:'1px solid rgba(255,255,255,0.1)' }}>
+                        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', display:'flex', alignItems:'center', gap:'6px' }}><span>📅</span> {cert.date}</div>
+                        {hasDoc && <div style={{ fontSize: '12px', color: '#FF6CAB', fontWeight: 700, textTransform:'uppercase', letterSpacing:'1px' }}>Open</div>}
                       </div>
                     </div>
-                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:'16px', borderTop:'1px solid rgba(255,255,255,0.1)' }}>
-                      <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', display:'flex', alignItems:'center', gap:'6px' }}><span>📅</span> {cert.date}</div>
-                      {(cert.imageBase64 || cert.url || cert.certificateUrl) && <div style={{ fontSize: '12px', color: '#FF6CAB', fontWeight: 700, textTransform:'uppercase', letterSpacing:'1px' }}>Open</div>}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
           </>
         )}
-{/* ACHIEVEMENTS */}
+
+        {/* ACHIEVEMENTS */}
         {achievements?.length > 0 && (
           <section style={{ padding: '60px 40px' }}>
             <h2 data-animate style={{ fontSize: '40px', fontFamily: "'Syne', sans-serif", fontWeight: 700, marginBottom: '40px', color: '#FFFFFF', textAlign: 'center' }}>Achievements</h2>
