@@ -18,7 +18,7 @@ const A4_H = 1123;
  *   contentHeightRef   – ref populated with actual content scrollHeight (for Auto Fit)
  *   zoomMultiplier     – user-controlled zoom: 1.0 = auto-fit, >1 = zoom in, <1 = zoom out
  */
-const ResumePreview = ({ onPageCountChange, contentHeightRef, zoomMultiplier = 1.0 }) => {
+const ResumePreview = ({ onPageCountChange, contentHeightRef, zoomMultiplier = 1.0, activeAtsCategory }) => {
   const { data } = useSelector(s => s.resume);
   const containerRef = useRef(null);   // wraps template — accurate scrollHeight measurement
   const wrapperRef   = useRef(null);   // outer width-sensing wrapper
@@ -72,12 +72,12 @@ const ResumePreview = ({ onPageCountChange, contentHeightRef, zoomMultiplier = 1
 
   const renderTemplate = () => {
     switch (data.template) {
-      case 'modern':    return <ModernTwoColumnTemplate data={data} />;
-      case 'minimal':   return <MinimalTemplate data={data} />;
-      case 'developer': return <DeveloperTemplate data={data} />;
-      case 'executive': return <ExecutiveTemplate data={data} />;
+      case 'modern':    return <ModernTwoColumnTemplate data={data} activeAtsCategory={activeAtsCategory} />;
+      case 'minimal':   return <MinimalTemplate data={data} activeAtsCategory={activeAtsCategory} />;
+      case 'developer': return <DeveloperTemplate data={data} activeAtsCategory={activeAtsCategory} />;
+      case 'executive': return <ExecutiveTemplate data={data} activeAtsCategory={activeAtsCategory} />;
       case 'classic':
-      default:          return <ClassicTemplate data={data} />;
+      default:          return <ClassicTemplate data={data} activeAtsCategory={activeAtsCategory} />;
     }
   };
 

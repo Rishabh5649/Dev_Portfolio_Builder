@@ -37,7 +37,7 @@ const FONT_STACKS = {
   'Poppins':          "'Poppins', 'Helvetica Neue', sans-serif",
 };
 
-const ClassicTemplate = ({ data }) => {
+const ClassicTemplate = ({ data, activeAtsCategory }) => {
   if (!data) return null;
 
   const {
@@ -71,6 +71,201 @@ const ClassicTemplate = ({ data }) => {
   const fontStack = FONT_STACKS[fontFamily] || FONT_STACKS['Georgia'];
   ensureFont(fontFamily);
 
+  // ── LIVE ATS HIGHLIGHT UTILITIES ──
+  const getHighlightedBullet = (text, category) => {
+    if (!category) return text;
+    const lower = text.toLowerCase();
+    
+    // 1. CONTENT QUALITY / SPECIFICITY
+    if (category === 'content' || category === 'quality') {
+      const quantPattern = /\b\d+(?:[\d,\.]*)*(?:%|\+|\s*(?:percent|x|k|M|m|B|b|million|billion|dollars|s|ms|fps))\b|\b\d+\b/;
+      const vaguePhrases = ["worked on", "helped with", "assisted in", "responsible for", "handled", "tasks included", "participated in"];
+      
+      let isQuantified = quantPattern.test(text);
+      let foundVague = vaguePhrases.find(vp => lower.includes(vp));
+      
+      if (foundVague) {
+        const parts = text.split(new RegExp(`(${foundVague})`, 'i'));
+        return (
+          <span style={{ background: 'rgba(217, 83, 79, 0.08)', border: '1px dashed rgba(217, 83, 79, 0.3)', borderRadius: '4px', padding: '1px 4px', display: 'inline-block', width: '100%', boxSizing: 'border-box' }}>
+            {parts.map((p, idx) => p.toLowerCase() === foundVague ? <strong key={idx} style={{ color: '#D9534F', textDecoration: 'underline' }}>{p}</strong> : p)}
+            <span style={{ fontSize: '0.85em', color: '#D9534F', display: 'block', marginTop: '2px', fontWeight: 600 }}>✗ Recruiter Warning: Vague Phrasing</span>
+          </span>
+        );
+      }
+      
+      if (isQuantified) {
+        return (
+          <span style={{ background: 'rgba(44, 165, 141, 0.08)', border: '1px dashed rgba(44, 165, 141, 0.3)', borderRadius: '4px', padding: '1px 4px', display: 'inline-block', width: '100%', boxSizing: 'border-box' }}>
+            {text}
+            <span style={{ fontSize: '0.85em', color: '#2CA58D', display: 'block', marginTop: '2px', fontWeight: 600 }}>✓ Recruiter Approved: Quantified Achievement</span>
+          </span>
+        );
+      }
+      
+      return (
+        <span style={{ background: 'rgba(226, 185, 59, 0.08)', border: '1px dashed rgba(226, 185, 59, 0.3)', borderRadius: '4px', padding: '1px 4px', display: 'inline-block', width: '100%', boxSizing: 'border-box' }}>
+          {text}
+          <span style={{ fontSize: '0.85em', color: '#D4AF37', display: 'block', marginTop: '2px', fontWeight: 600 }}>⚠ Recruiter Tip: Unquantified Bullet (Add real metrics)</span>
+        </span>
+      );
+    }
+    
+    // 2. VERBS & IMPACT
+    if (category === 'impact' || category === 'verbs') {
+      const actionVerbs = new Set([
+        'built', 'developed', 'optimized', 'designed', 'led', 'implemented', 'architected',
+        'created', 'managed', 'formulated', 'secured', 'deployed', 'engineered', 'enhanced',
+        'coordinated', 'accelerated', 'reduced', 'increased', 'formulated', 'spearheaded', 'automated', 'streamlined', 'leveraged'
+      ]);
+      const firstWord = text.split(/\s+/)[0]?.toLowerCase().replace(/[^a-z]/g, '');
+      const startsWithAction = actionVerbs.has(firstWord);
+      
+      if (startsWithAction) {
+        return (
+          <span style={{ background: 'rgba(44, 165, 141, 0.08)', border: '1px dashed rgba(44, 165, 141, 0.3)', borderRadius: '4px', padding: '1px 4px', display: 'inline-block', width: '100%', boxSizing: 'border-box' }}>
+            <strong style={{ color: '#2CA58D' }}>{text.split(/\s+/)[0]}</strong> {text.substring(text.split(/\s+/)[0].length)}
+            <span style={{ fontSize: '0.85em', color: '#2CA58D', display: 'block', marginTop: '2px', fontWeight: 600 }}>✓ Strong Leading Action Verb</span>
+          </span>
+        );
+      } else {
+        return (
+          <span style={{ background: 'rgba(217, 83, 79, 0.08)', border: '1px dashed rgba(217, 83, 79, 0.3)', borderRadius: '4px', padding: '1px 4px', display: 'inline-block', width: '100%', boxSizing: 'border-box' }}>
+            {text}
+            <span style={{ fontSize: '0.85em', color: '#D9534F', display: 'block', marginTop: '2px', fontWeight: 600 }}>✗ Weak Verbs: Missing leading action verb</span>
+          </span>
+        );
+      }
+    }
+    
+    // 3. READABILITY & LAYOUT
+    if (category === 'readability') {
+      if (text.length > 200) {
+        return (
+          <span style={{ background: 'rgba(217, 83, 79, 0.08)', border: '1px dashed rgba(217, 83, 79, 0.3)', borderRadius: '4px', padding: '1px 4px', display: 'inline-block', width: '100%', boxSizing: 'border-box' }}>
+            {text}
+            <span style={{ fontSize: '0.85em', color: '#D9534F', display: 'block', marginTop: '2px', fontWeight: 600 }}>✗ Spacing Alert: Overly long bullet point (&gt;200 chars)</span>
+          </span>
+        );
+      }
+      if (text.length < 40) {
+        return (
+          <span style={{ background: 'rgba(226, 185, 59, 0.08)', border: '1px dashed rgba(226, 185, 59, 0.3)', borderRadius: '4px', padding: '1px 4px', display: 'inline-block', width: '100%', boxSizing: 'border-box' }}>
+            {text}
+            <span style={{ fontSize: '0.85em', color: '#D4AF37', display: 'block', marginTop: '2px', fontWeight: 600 }}>⚠ Content Warning: Short bullet point (&lt;40 chars)</span>
+          </span>
+        );
+      }
+    }
+    
+    // 4. TECHNICAL SPECIFICITY / DEPTH
+    if (category === 'tech_depth' || category === 'depth') {
+      const techPattern = /caching|redis|optimization|api|database|pipeline|latency|throughput|architecture|refactored|migration|cloud|microservices|docker|concurrency|concurrent|scalability|scalable|pytorch|tensorflow|cnn|lstm|mern/;
+      if (techPattern.test(lower)) {
+        return (
+          <span style={{ background: 'rgba(44, 165, 141, 0.08)', border: '1px dashed rgba(44, 165, 141, 0.3)', borderRadius: '4px', padding: '1px 4px', display: 'inline-block', width: '100%', boxSizing: 'border-box' }}>
+            {text}
+            <span style={{ fontSize: '0.85em', color: '#2CA58D', display: 'block', marginTop: '2px', fontWeight: 600 }}>✓ Engineering Audit Approved: High Technical Specificity</span>
+          </span>
+        );
+      }
+    }
+    
+    // 5. BIG-TECH READINESS
+    if (category === 'big_tech') {
+      const scaleKeywords = ['scale', 'user', 'qps', 'database', 'latency', 'throughput', 'concurrency', 'cloud', 'architecture', 'speedup', 'reduction', 'optimize', 'latency', 'million', 'billion'];
+      const scaleMatch = scaleKeywords.find(kw => lower.includes(kw));
+      if (scaleMatch) {
+        return (
+          <span style={{ background: 'rgba(44, 165, 141, 0.08)', border: '1px dashed rgba(44, 165, 141, 0.3)', borderRadius: '4px', padding: '1px 4px', display: 'inline-block', width: '100%', boxSizing: 'border-box' }}>
+            {text}
+            <span style={{ fontSize: '0.85em', color: '#2CA58D', display: 'block', marginTop: '2px', fontWeight: 600 }}>✓ High-Scale Architecture Metric Detected</span>
+          </span>
+        );
+      }
+    }
+
+    return text;
+  };
+
+  const getHighlightedSkills = (skillsArray, category) => {
+    if (category !== 'skills') return skillsArray.join(', ');
+    
+    const outdatedTech = ['jquery', 'svn', 'cvs', 'ftp', 'frontpage', 'flash'];
+    const counts = {};
+    skillsArray.forEach(s => {
+      const norm = s.toLowerCase().trim();
+      counts[norm] = (counts[norm] || 0) + 1;
+    });
+    
+    return skillsArray.map((s, idx) => {
+      const norm = s.toLowerCase().trim();
+      const isOutdated = outdatedTech.includes(norm);
+      const isDuplicate = counts[norm] > 1;
+      
+      if (isOutdated) {
+        return (
+          <span key={idx} style={{ background: 'rgba(217, 83, 79, 0.12)', color: '#D9534F', textDecoration: 'line-through', border: '1px dashed rgba(217, 83, 79, 0.35)', borderRadius: '4px', padding: '1px 4px', marginRight: '4px', display: 'inline-block' }}>
+            {s} (Outdated)
+          </span>
+        );
+      }
+      if (isDuplicate) {
+        return (
+          <span key={idx} style={{ background: 'rgba(226, 185, 59, 0.12)', color: '#D4AF37', border: '1px dashed rgba(226, 185, 59, 0.35)', borderRadius: '4px', padding: '1px 4px', marginRight: '4px', display: 'inline-block' }}>
+            {s} (Duplicate)
+          </span>
+        );
+      }
+      return <span key={idx} style={{ marginRight: '4px', color: '#333' }}>{s}{idx < skillsArray.length - 1 ? ',' : ''}</span>;
+    });
+  };
+
+  const getHighlightedSummary = (text, category) => {
+    if (category === 'readability' || category === 'summary') {
+      if (text.length > 400) {
+        return (
+          <span style={{ background: 'rgba(217, 83, 79, 0.06)', border: '1px dashed rgba(217, 83, 79, 0.25)', borderRadius: '4px', padding: '6px', display: 'block' }}>
+            {text}
+            <span style={{ fontSize: '0.85em', color: '#D9534F', display: 'block', marginTop: '4px', fontWeight: 600 }}>✗ Verbose Profile Warning ({text.length} chars) - Exceeds recommended 400 character limit</span>
+          </span>
+        );
+      } else if (category === 'summary') {
+        return (
+          <span style={{ background: 'rgba(44, 165, 141, 0.06)', border: '1px dashed rgba(44, 165, 141, 0.25)', borderRadius: '4px', padding: '6px', display: 'block' }}>
+            {text}
+            <span style={{ fontSize: '0.85em', color: '#2CA58D', display: 'block', marginTop: '4px', fontWeight: 600 }}>✓ Professional Summary Audit: Active & Structured Profile</span>
+          </span>
+        );
+      }
+    }
+    return text;
+  };
+
+  const getHighlightedSectionWrap = (children, secId, category) => {
+    const isSectionAudit = category === secId;
+    
+    if (category === 'formatting') {
+      return (
+        <div style={{ border: '1px dashed rgba(226, 185, 59, 0.3)', background: 'rgba(226, 185, 59, 0.015)', borderRadius: '6px', padding: '6px', marginBottom: `${sectionGap}px`, transition: 'all 0.2s' }}>
+          {children}
+          <div style={{ fontSize: '8px', color: '#D4AF37', textAlign: 'right', marginTop: '2px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Spacing Audit Margin Boundary</div>
+        </div>
+      );
+    }
+    
+    if (isSectionAudit) {
+      return (
+        <div style={{ border: '2px dashed rgba(44, 165, 141, 0.45)', background: 'rgba(44, 165, 141, 0.02)', borderRadius: '8px', padding: '8px', marginBottom: `${sectionGap}px`, transition: 'all 0.2s' }}>
+          {children}
+          <div style={{ fontSize: '9px', color: '#2CA58D', textAlign: 'right', marginTop: '4px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>✦ Currently Auditing Section</div>
+        </div>
+      );
+    }
+    
+    return <div style={{ marginBottom: `${sectionGap}px` }}>{children}</div>;
+  };
+
   const labels = {
     summary:        sectionLabels.summary        || 'Summary',
     education:      sectionLabels.education      || 'Education',
@@ -91,7 +286,6 @@ const ClassicTemplate = ({ data }) => {
       fontSize:   baseSize,
       color:      '#333',
       // 4-value padding: top/sides use pagePadding, bottom uses bottomMargin
-      // This is what makes the bottom margin slider actually work in the preview
       padding:    `${pagePadding}mm ${pagePadding + 2}mm ${bottomMargin}mm ${pagePadding + 2}mm`,
       boxSizing:  'border-box',
       lineHeight,
@@ -117,19 +311,20 @@ const ClassicTemplate = ({ data }) => {
     if (hiddenSections?.includes(id)) return null;
 
     // ── SUMMARY ──────────────────────────────────────────────────────────
-    if (id === 'summary' && summary) return (
-      <div key="summary" style={S.sectionWrap}>
+    if (id === 'summary' && summary) return getHighlightedSectionWrap(
+      <div key="summary">
         <SecTitle label={labels.summary} />
-        <p style={{ margin: 0, lineHeight, color: '#333' }}>{summary}</p>
-      </div>
+        <p style={{ margin: 0, lineHeight, color: '#333' }}>{getHighlightedSummary(summary, activeAtsCategory)}</p>
+      </div>,
+      'summary',
+      activeAtsCategory
     );
 
     // ── EDUCATION ─────────────────────────────────────────────────────────
-    if (id === 'education' && education.some(e => !e.hidden)) return (
-      <div key="education" style={S.sectionWrap}>
+    if (id === 'education' && education.some(e => !e.hidden)) return getHighlightedSectionWrap(
+      <div key="education">
         <SecTitle label={labels.education} />
         {education.filter(e => !e.hidden).map((edu, i) => {
-          // Split into label + value so the label can be bold
           let scoreLabel = '';
           let scoreValue = '';
           if (edu.showCgpa && edu.cgpa) {
@@ -148,7 +343,7 @@ const ClassicTemplate = ({ data }) => {
               <div style={S.row}>
                 <span style={S.bold}>{edu.institution}</span>
                 {scoreLabel && (
-                  <span style={{ fontSize: '0.9em', color: '#333', fontStyle: 'italic' }}>
+                  <span style={{ fontSize: '0.9em', color: '#333', fontStyle: 'italic', ...(activeAtsCategory === 'education' ? { background: 'rgba(44, 165, 141, 0.08)', border: '1px dashed rgba(44, 165, 141, 0.3)', borderRadius: '4px', padding: '1px 4px' } : {}) }}>
                     <span style={{ fontWeight: 700 }}>{scoreLabel}</span>
                     <span style={{ fontWeight: 700 }}>{scoreValue}</span>
                   </span>
@@ -156,40 +351,46 @@ const ClassicTemplate = ({ data }) => {
               </div>
               {/* Row 2: Degree, Field italic | Year italic */}
               <div style={S.row}>
-                <span style={{ color: '#333', fontSize: '0.92em', fontStyle: 'italic' }}>
+                <span style={{ color: '#333', fontSize: '0.92em', fontStyle: 'italic', ...(activeAtsCategory === 'education' ? { background: 'rgba(44, 165, 141, 0.08)', border: '1px dashed rgba(44, 165, 141, 0.3)', borderRadius: '4px', padding: '1px 4px' } : {}) }}>
                   {[edu.degree, edu.field].filter(Boolean).join(', ')}
                 </span>
                 <span style={{ color: '#555', fontSize: '0.88em', fontStyle: 'italic' }}>{dateStr}</span>
               </div>
               {edu.coursework && (
-                <div style={{ fontSize: '0.85em', color: '#555', marginTop: '2px' }}>
+                <div style={{ fontSize: '0.85em', color: '#555', marginTop: '2px', ...(activeAtsCategory === 'education' || activeAtsCategory === 'internship' ? { background: 'rgba(44, 165, 141, 0.08)', border: '1px dashed rgba(44, 165, 141, 0.3)', borderRadius: '4px', padding: '1px 4px' } : {}) }}>
                   Coursework: {edu.coursework}
                 </div>
               )}
             </div>
           );
         })}
-      </div>
+      </div>,
+      'education',
+      activeAtsCategory
     );
 
     // ── SKILLS ────────────────────────────────────────────────────────────
-    if (id === 'skills' && skillGroups.length > 0) return (
-      <div key="skills" style={S.sectionWrap}>
+    if (id === 'skills' && skillGroups.length > 0) return getHighlightedSectionWrap(
+      <div key="skills">
         <SecTitle label={labels.skills} />
         {skillGroups.map((g, i) => (
-          <div key={i} style={{ display: 'flex', marginBottom: `${paragraphGap - 1}px`, fontSize: '0.95em', lineHeight }}>
+          <div key={i} style={{ display: 'flex', marginBottom: `${paragraphGap - 1}px`, fontSize: '0.95em', lineHeight, flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 700, color: '#111', whiteSpace: 'nowrap', marginRight: '4px' }}>
               {g.category}:
             </span>
-            <span style={{ color: '#333' }}>{g.skills.join(', ')}</span>
+            <span style={{ color: '#333', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '2px' }}>
+              {getHighlightedSkills(g.skills, activeAtsCategory)}
+            </span>
           </div>
         ))}
-      </div>
+      </div>,
+      'skills',
+      activeAtsCategory
     );
 
     // ── PUBLICATIONS ──────────────────────────────────────────────────────
-    if (id === 'publications' && publications.some(p => !p.hidden)) return (
-      <div key="publications" style={S.sectionWrap}>
+    if (id === 'publications' && publications.some(p => !p.hidden)) return getHighlightedSectionWrap(
+      <div key="publications">
         <SecTitle label={labels.publications} />
         {publications.filter(p => !p.hidden).map((pub, i) => (
           <div key={i} style={S.entry}>
@@ -202,15 +403,17 @@ const ClassicTemplate = ({ data }) => {
                 - {[pub.publisher, pub.year].filter(Boolean).join(' — ')}
               </div>
             )}
-            {pub.description && <div style={S.indent}>{pub.description}</div>}
+            {pub.description && <div style={S.indent}>{getHighlightedBullet(pub.description, activeAtsCategory)}</div>}
           </div>
         ))}
-      </div>
+      </div>,
+      'publications',
+      activeAtsCategory
     );
 
     // ── PROJECTS ──────────────────────────────────────────────────────────
-    if (id === 'projects' && projects.some(p => !p.hidden)) return (
-      <div key="projects" style={S.sectionWrap}>
+    if (id === 'projects' && projects.some(p => !p.hidden)) return getHighlightedSectionWrap(
+      <div key="projects">
         <SecTitle label={labels.projects} />
         {projects.filter(p => !p.hidden).map((proj, i) => (
           <div key={i} style={S.entry}>
@@ -229,23 +432,25 @@ const ClassicTemplate = ({ data }) => {
             {/* – description */}
             {proj.description && (
               <div style={{ ...S.indent, marginTop: '1px', lineHeight }}>
-                – {proj.description}
+                – {getHighlightedBullet(proj.description, activeAtsCategory)}
               </div>
             )}
           </div>
         ))}
-      </div>
+      </div>,
+      'projects',
+      activeAtsCategory
     );
 
     // ── EXPERIENCE ────────────────────────────────────────────────────────
-    if (id === 'experience' && experience.some(e => !e.hidden)) return (
-      <div key="experience" style={S.sectionWrap}>
+    if (id === 'experience' && experience.some(e => !e.hidden)) return getHighlightedSectionWrap(
+      <div key="experience">
         <SecTitle label={labels.experience} />
         {experience.filter(e => !e.hidden).map((exp, i) => {
           const dateStr = [exp.startDate, exp.current ? 'Present' : exp.endDate].filter(Boolean).join(' – ');
           return (
             <div key={i} style={S.entry}>
-              {/* • Role, Company  |  Date — no extra comma before role */}
+              {/* • Role, Company  |  Date */}
               <div style={S.row}>
                 <span style={{ display: 'flex', alignItems: 'baseline', gap: '4px', flexWrap: 'wrap' }}>
                   <span style={{ color: '#333', flexShrink: 0 }}>•</span>
@@ -263,60 +468,68 @@ const ClassicTemplate = ({ data }) => {
               {/* – bullet points */}
               {(exp.bullets || []).filter(b => b?.trim()).map((b, bi) => (
                 <div key={bi} style={{ ...S.indent, lineHeight, marginTop: '1px' }}>
-                  – {b.replace(/^[•\-–]\s*/, '')}
+                  – {getHighlightedBullet(b.replace(/^[•\-–]\s*/, ''), activeAtsCategory)}
                 </div>
               ))}
             </div>
           );
         })}
-      </div>
+      </div>,
+      'experience',
+      activeAtsCategory
     );
 
     // ── CERTIFICATIONS ────────────────────────────────────────────────────
-    if (id === 'certifications' && certifications.some(c => !c.hidden)) return (
-      <div key="certifications" style={S.sectionWrap}>
+    if (id === 'certifications' && certifications.some(c => !c.hidden)) return getHighlightedSectionWrap(
+      <div key="certifications">
         <SecTitle label={labels.certifications} />
         <ul style={{ margin: 0, paddingLeft: '16px', listStyle: 'disc' }}>
           {certifications.filter(c => !c.hidden).map((cert, i) => (
             <li key={i} style={{ marginBottom: `${paragraphGap - 1}px`, color: '#333', lineHeight }}>
-              <span style={{ fontWeight: 600, color: '#111' }}>{cert.name}</span>
+              <span style={{ fontWeight: 600, color: '#111', ...(activeAtsCategory === 'certifications' ? { background: 'rgba(44, 165, 141, 0.08)', border: '1px dashed rgba(44, 165, 141, 0.3)', borderRadius: '4px', padding: '1px 4px' } : {}) }}>{cert.name}</span>
               {cert.issuer && <span style={{ color: '#555' }}> — {cert.issuer}</span>}
               {cert.year   && <span style={{ color: '#555' }}> ({cert.year})</span>}
             </li>
           ))}
         </ul>
-      </div>
+      </div>,
+      'certifications',
+      activeAtsCategory
     );
 
     // ── ACHIEVEMENTS ──────────────────────────────────────────────────────
-    if (id === 'achievements' && achievements.some(a => !a.hidden)) return (
-      <div key="achievements" style={S.sectionWrap}>
+    if (id === 'achievements' && achievements.some(a => !a.hidden)) return getHighlightedSectionWrap(
+      <div key="achievements">
         <SecTitle label={labels.achievements} />
         <ul style={{ margin: 0, paddingLeft: '16px', listStyle: 'disc' }}>
           {achievements.filter(a => !a.hidden).map((a, i) => (
-            <li key={i} style={{ marginBottom: `${paragraphGap - 1}px`, color: '#333', lineHeight }}>
+            <li key={i} style={{ marginBottom: `${paragraphGap - 1}px`, color: '#333', lineHeight, ...(activeAtsCategory === 'achievements' ? { background: 'rgba(44, 165, 141, 0.08)', border: '1px dashed rgba(44, 165, 141, 0.3)', borderRadius: '4px', padding: '2px 6px' } : {}) }}>
               {a.title && <span style={{ fontWeight: 600, color: '#111' }}>{a.title}: </span>}
               {a.description}
             </li>
           ))}
         </ul>
-      </div>
+      </div>,
+      'achievements',
+      activeAtsCategory
     );
 
     // ── LEADERSHIP ────────────────────────────────────────────────────────
-    if (id === 'leadership' && leadership.some(l => !l.hidden)) return (
-      <div key="leadership" style={S.sectionWrap}>
+    if (id === 'leadership' && leadership.some(l => !l.hidden)) return getHighlightedSectionWrap(
+      <div key="leadership">
         <SecTitle label={labels.leadership} />
         <ul style={{ margin: 0, paddingLeft: '16px', listStyle: 'disc' }}>
           {leadership.filter(l => !l.hidden).map((item, i) => (
-            <li key={i} style={{ marginBottom: `${paragraphGap - 1}px`, color: '#333', lineHeight }}>
+            <li key={i} style={{ marginBottom: `${paragraphGap - 1}px`, color: '#333', lineHeight, ...(activeAtsCategory === 'leadership' ? { background: 'rgba(44, 165, 141, 0.08)', border: '1px dashed rgba(44, 165, 141, 0.3)', borderRadius: '4px', padding: '2px 6px' } : {}) }}>
               {item.title && <span style={{ fontWeight: 600, color: '#111' }}>{item.title}</span>}
               {item.organization && <span style={{ color: '#555' }}>: {item.organization}</span>}
-              {item.description  && <span style={{ color: '#444' }}>{item.description}</span>}
+              {item.description  && <span style={{ color: '#444' }}> — {item.description}</span>}
             </li>
           ))}
         </ul>
-      </div>
+      </div>,
+      'leadership',
+      activeAtsCategory
     );
 
     return null;

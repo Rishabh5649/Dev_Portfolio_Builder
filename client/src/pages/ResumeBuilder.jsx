@@ -207,6 +207,7 @@ const ResumeBuilder = () => {
   const [activeSection,   setActiveSection] = useState('header');
   const [zoomMultiplier,  setZoomMultiplier] = useState(1.0);
   const [atsOpen,         setAtsOpen]        = useState(false);
+  const [activeAtsCategory, setActiveAtsCategory] = useState(null);
 
   const workspaceRef        = useRef(null);
   const contentHeightRef    = useRef(0);
@@ -633,6 +634,7 @@ const ResumeBuilder = () => {
                 onPageCountChange={setPageCount} 
                 contentHeightRef={contentHeightRef} 
                 zoomMultiplier={zoomMultiplier}
+                activeAtsCategory={activeAtsCategory}
               />
             ) : (
               <div style={{ color:'var(--text-muted)', fontSize:'14px', marginTop:'100px', textAlign:'center' }}>
@@ -751,7 +753,13 @@ const ResumeBuilder = () => {
         <style>{`body { cursor: col-resize !important; user-select: none !important; }`}</style>
       )}
 
-      <ATSAnalyzerModal open={atsOpen} onClose={() => setAtsOpen(false)} resume={data} />
+      <ATSAnalyzerModal 
+        open={atsOpen} 
+        onClose={() => { setAtsOpen(false); setActiveAtsCategory(null); }} 
+        resume={data} 
+        activeCategory={activeAtsCategory}
+        setActiveCategory={setActiveAtsCategory}
+      />
     </div>
   );
 };
