@@ -407,7 +407,7 @@ export default function PortfolioFormV2() {
       {/* Projects */}
       <AccordionSection
         title={`🚀 Projects ${portfolio.projects?.length ? `(${portfolio.projects.length})` : ''}`}
-        onAddClick={() => dispatch(addProject({ title: '', description: '', technologies: [], links: { github: '', live: '' }, featured: false }))}
+        onAddClick={() => dispatch(addProject({ name: '', title: '', description: '', techStack: [], technologies: [], githubUrl: '', githubLink: '', liveUrl: '', liveLink: '', links: { github: '', live: '' }, featured: false }))}
       >
         {(portfolio.projects || []).map((proj, idx) => (
           <motion.div key={idx} style={{ padding: '12px', background: 'var(--bg-secondary)', borderRadius: '4px', marginBottom: '12px', position: 'relative' }}>
@@ -425,11 +425,44 @@ export default function PortfolioFormV2() {
             >
               <X size={16} />
             </button>
-            <FormInput label="Project Title" value={proj.title} onChange={(e) => dispatch(updateProject({ idx, data: { ...proj, title: e.target.value } }))} />
-            <FormTextarea label="Description" value={proj.description} onChange={(e) => dispatch(updateProject({ idx, data: { ...proj, description: e.target.value } }))} />
-            <FormInput label="Technologies" value={proj.technologies?.join(', ')} onChange={(e) => dispatch(updateProject({ idx, data: { ...proj, technologies: e.target.value.split(',').map((t) => t.trim()).filter(Boolean) } }))} />
-            <FormInput label="GitHub URL" value={proj.links?.github} onChange={(e) => dispatch(updateProject({ idx, data: { ...proj, links: { ...proj.links, github: e.target.value } } }))} />
-            <FormInput label="Live URL" value={proj.links?.live} onChange={(e) => dispatch(updateProject({ idx, data: { ...proj, links: { ...proj.links, live: e.target.value } } }))} />
+            <FormInput 
+              label="Project Title" 
+              value={proj.name || proj.title || ''} 
+              onChange={(e) => dispatch(updateProject({ idx, data: { ...proj, name: e.target.value, title: e.target.value } }))} 
+            />
+            <FormTextarea 
+              label="Description" 
+              value={proj.description || ''} 
+              onChange={(e) => dispatch(updateProject({ idx, data: { ...proj, description: e.target.value } }))} 
+            />
+            <FormInput 
+              label="Technologies" 
+              value={(proj.techStack || proj.technologies || []).join(', ')} 
+              onChange={(e) => {
+                const arr = e.target.value.split(',').map((t) => t.trim()).filter(Boolean);
+                dispatch(updateProject({ idx, data: { ...proj, techStack: arr, technologies: arr } }));
+              }} 
+            />
+            <FormInput 
+              label="GitHub URL" 
+              value={proj.githubUrl || proj.githubLink || proj.links?.github || ''} 
+              onChange={(e) => dispatch(updateProject({ idx, data: { 
+                ...proj, 
+                githubUrl: e.target.value, 
+                githubLink: e.target.value, 
+                links: { ...(proj.links || {}), github: e.target.value } 
+              } }))} 
+            />
+            <FormInput 
+              label="Live URL" 
+              value={proj.liveUrl || proj.liveLink || proj.links?.live || ''} 
+              onChange={(e) => dispatch(updateProject({ idx, data: { 
+                ...proj, 
+                liveUrl: e.target.value, 
+                liveLink: e.target.value, 
+                links: { ...(proj.links || {}), live: e.target.value } 
+              } }))} 
+            />
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <input
                 type="checkbox"
