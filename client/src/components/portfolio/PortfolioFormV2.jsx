@@ -206,31 +206,67 @@ export default function PortfolioFormV2() {
           <label style={{ fontSize: '12px', fontWeight: '600', display: 'block', marginBottom: '4px', color: 'var(--text-secondary)' }}>
             Profile Photo
           </label>
-          <div
-            style={{
-              border: '2px dashed var(--border)',
-              borderRadius: '4px',
-              padding: '16px',
-              textAlign: 'center',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-            onClick={() => document.getElementById('profile-photo-input')?.click()}
-          >
-            <Upload size={20} style={{ margin: '0 auto 8px', color: 'var(--accent)' }} />
-            <p style={{ margin: 0, fontSize: '13px' }}>Click to upload or drag & drop</p>
-            <input
-              id="profile-photo-input"
-              type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
-              onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'profilePhoto')}
-            />
-          </div>
-          {portfolio.personalInfo?.profilePhoto && (
-            <img src={portfolio.personalInfo.profilePhoto} alt="Profile" style={{ maxWidth: '100px', marginTop: '8px', borderRadius: '4px' }} />
+          {portfolio.personalInfo?.profilePhoto ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <img src={portfolio.personalInfo.profilePhoto} alt="Profile" style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '50%', border: '1px solid var(--border)' }} />
+              <div style={{
+                flex: 1,
+                padding: '8px 12px',
+                border: '1px solid var(--border)',
+                borderRadius: '4px',
+                background: 'rgba(16, 185, 129, 0.08)',
+                borderLeft: '3px solid #10B981',
+                fontSize: '13px',
+                color: '#10B981',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                ✓ Profile Photo Uploaded
+              </div>
+              <button
+                onClick={() => dispatch(setPersonalInfo({ profilePhoto: '' }))}
+                style={{
+                  padding: '8px',
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  color: '#EF4444',
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                title="Remove photo"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          ) : (
+            <div
+              style={{
+                border: '2px dashed var(--border)',
+                borderRadius: '4px',
+                padding: '16px',
+                textAlign: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              onClick={() => document.getElementById('profile-photo-input')?.click()}
+            >
+              <Upload size={20} style={{ margin: '0 auto 8px', color: 'var(--accent)' }} />
+              <p style={{ margin: 0, fontSize: '13px' }}>Click to upload or drag & drop</p>
+              <input
+                id="profile-photo-input"
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'profilePhoto')}
+              />
+            </div>
           )}
         </div>
 
@@ -238,28 +274,72 @@ export default function PortfolioFormV2() {
           <label style={{ fontSize: '12px', fontWeight: '600', display: 'block', marginBottom: '4px', color: 'var(--text-secondary)' }}>
             Resume
           </label>
-          <button
-            onClick={() => document.getElementById('resume-input')?.click()}
-            style={{
-              width: '100%',
-              padding: '8px',
-              border: '1px solid var(--border)',
-              borderRadius: '4px',
-              background: 'var(--bg-secondary)',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              fontSize: '13px',
-            }}
-          >
-            {portfolio.personalInfo?.resumeBase64 || portfolio.personalInfo?.resumeUrl ? '✓ Resume Uploaded' : 'Upload Resume (PDF/DOCX)'}
-          </button>
-          <input
-            id="resume-input"
-            type="file"
-            accept=".pdf,.docx"
-            style={{ display: 'none' }}
-            onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'resumeBase64')}
-          />
+          {portfolio.personalInfo?.resumeBase64 || portfolio.personalInfo?.resumeUrl ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                flex: 1,
+                padding: '8px 12px',
+                border: '1px solid var(--border)',
+                borderRadius: '4px',
+                background: 'rgba(16, 185, 129, 0.08)',
+                borderLeft: '3px solid #10B981',
+                fontSize: '13px',
+                color: '#10B981',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                ✓ Resume Uploaded
+              </div>
+              <button
+                onClick={() => dispatch(setPersonalInfo({ resumeBase64: '', resumeUrl: '' }))}
+                style={{
+                  padding: '8px',
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  color: '#EF4444',
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                title="Remove resume"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={() => document.getElementById('resume-input')?.click()}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px dashed var(--border)',
+                  borderRadius: '4px',
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Upload size={14} /> Upload Resume (PDF/DOCX)
+              </button>
+              <input
+                id="resume-input"
+                type="file"
+                accept=".pdf,.docx"
+                style={{ display: 'none' }}
+                onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'resumeBase64')}
+              />
+            </>
+          )}
         </div>
 
         <FormInput

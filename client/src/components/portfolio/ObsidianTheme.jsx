@@ -229,11 +229,11 @@ export default function ObsidianTheme({ portfolio }) {
         </h1>
         <div style={{ display: 'flex', gap: '20px', fontSize: '12px' }}>
           {[
-            { label: 'about', href: '#about' },
-            { label: 'work', href: '#experience' },
-            { label: 'projects', href: '#projects' },
-            { label: 'contact', href: '#contact' },
-          ].map((item) => (
+            { label: 'about', href: '#about', show: true },
+            { label: 'work', href: '#experience', show: experience?.length > 0 },
+            { label: 'projects', href: '#projects', show: projects?.length > 0 },
+            { label: 'contact', href: '#contact', show: true },
+          ].filter(item => item.show).map((item) => (
             <a
               key={item.label}
               href={item.href}

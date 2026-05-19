@@ -3,6 +3,28 @@ import { useEffect, useRef, useState } from 'react';
 export default function AuroraTheme({ portfolio }) {
   const { personalInfo: p, contactInfo: c, socialLinks: s, skills, projects, education, experience, certifications, achievements, testimonials, codingProfiles: cp, blogArticles } = portfolio || {};
 
+  const sk = (skills && typeof skills === 'object' && !Array.isArray(skills)) ? skills : {};
+  const cats = [['languages','Languages'],['frameworks','Frameworks'],['tools','Tools'],['databases','Databases'],['other','Other']];
+  const hasSkills = cats.some(([key]) => Array.isArray(sk[key]) && sk[key].length > 0);
+  const profilePic = p?.profilePhoto || p?.profileImage;
+  const initials = p?.fullName ? p.fullName.split(' ').map(n => n[0]).join('').toUpperCase() : 'JD';
+
+  const activeSections = [
+    { id: 'hero', show: true },
+    { id: 'about', show: true },
+    { id: 'education', show: education?.length > 0 },
+    { id: 'experience', show: experience?.length > 0 },
+    { id: 'skills', show: hasSkills },
+    { id: 'projects', show: projects?.length > 0 },
+    { id: 'publications', show: blogArticles?.length > 0 },
+    { id: 'certifications', show: certifications?.filter(c => c.name || c.title).length > 0 },
+    { id: 'coding', show: !!cp?.github },
+    { id: 'achievements', show: achievements?.length > 0 },
+    { id: 'testimonials', show: testimonials?.length > 0 },
+    { id: 'resume', show: !!(p?.resumeBase64 || p?.resumeUrl) },
+    { id: 'contact', show: true },
+  ].filter(sec => sec.show);
+
   const normalizeExternalUrl = (url) => {
     const value = String(url || '').trim();
     if (!value) return '';
@@ -114,10 +136,10 @@ export default function AuroraTheme({ portfolio }) {
         flexDirection: 'column',
         gap: '32px',
       }}>
-        {['hero', 'about', 'education', 'experience', 'skills', 'projects', 'publications', 'certifications', 'coding', 'achievements', 'testimonials', 'resume', 'contact'].map((section) => (
+        {activeSections.map((sec) => (
           <button
-            key={section}
-            onClick={() => document.getElementById(section)?.scrollIntoView({ behavior: 'smooth' })}
+            key={sec.id}
+            onClick={() => document.getElementById(sec.id)?.scrollIntoView({ behavior: 'smooth' })}
             style={{
               width: '12px',
               height: '12px',
@@ -135,7 +157,7 @@ export default function AuroraTheme({ portfolio }) {
               e.currentTarget.style.background = 'transparent';
               e.currentTarget.style.transform = 'scale(1)';
             }}
-            title={section}
+            title={sec.id}
           />
         ))}
       </div>
@@ -238,35 +260,50 @@ export default function AuroraTheme({ portfolio }) {
         </div>
 
         {/* Profile Photo */}
-        {p?.profileImage && (
-          <div data-animate style={{
-            flex: 1,
+        <div data-animate style={{
+          flex: 1,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <div style={{
+            width: '350px',
+            height: '350px',
+            borderRadius: '50%',
+            overflow: 'hidden',
+            background: profilePic ? '#FFFFFF' : 'linear-gradient(135deg, #00C896, #C9A84C)',
+            border: '3px solid #C9A84C',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.1)',
+            position: 'relative',
             display: 'flex',
-            justifyContent: 'center',
             alignItems: 'center',
+            justifyContent: 'center',
           }}>
-            <div style={{
-              width: '350px',
-              height: '350px',
-              borderRadius: '50%',
-              overflow: 'hidden',
-              background: '#FFFFFF',
-              border: '3px solid #C9A84C',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.1)',
-              position: 'relative',
-            }}>
+            {profilePic ? (
               <img
-                src={p.profileImage}
-                alt={p.fullName}
+                src={profilePic}
+                alt={p?.fullName || 'Profile'}
                 style={{
                   width: '100%',
                   height: '100%',
                   objectFit: 'cover',
                 }}
               />
-            </div>
+            ) : (
+              <div style={{
+                fontSize: '84px',
+                fontWeight: 700,
+                color: '#FAFAF7',
+                fontFamily: "'Playfair Display', serif",
+                letterSpacing: '2px',
+                textShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                userSelect: 'none',
+              }}>
+                {initials}
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         <div style={{ position: 'absolute', right: '-100px', bottom: '-100px', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(0,200,150,0.05) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
       </section>
